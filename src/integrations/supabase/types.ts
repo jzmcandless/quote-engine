@@ -57,7 +57,8 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
-          deductible: number
+          deductible: string
+          deductible_cost: number | null
           id: string
           mileage_covered: number
           plan_id: string
@@ -70,7 +71,8 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
-          deductible: number
+          deductible: string
+          deductible_cost?: number | null
           id?: string
           mileage_covered: number
           plan_id: string
@@ -83,7 +85,8 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
-          deductible?: number
+          deductible?: string
+          deductible_cost?: number | null
           id?: string
           mileage_covered?: number
           plan_id?: string
