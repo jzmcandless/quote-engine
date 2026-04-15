@@ -26,7 +26,7 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
     setLoading(true);
     const query = supabase
       .from("coverage_pricing")
-      .select("price")
+      .select("price, deductible_cost, rental_plus")
       .eq("plan_id", coverage.planId)
       .eq("years_covered", coverage.yearsCovered)
       .eq("mileage_covered", coverage.mileageCovered)
@@ -36,7 +36,10 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
     if (vehicleClass) query.eq("vehicle_class", vehicleClass);
 
     const { data } = await query.limit(1).single();
-    if (data) onPriceGenerated(data.price);
+    if (data) {
+      const total = Number(data.price) + Number(data.deductible_cost || 0);
+      onPriceGenerated(total);
+    }
     setLoading(false);
   }
 
@@ -59,7 +62,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
         <p className="text-sm text-muted-foreground">Here's your personalized warranty quote</p>
       </div>
 
-      {/* Price display */}
       <div className="bg-accent rounded-xl p-6 text-center">
         <p className="text-sm text-muted-foreground mb-1">Total Price</p>
         <div className="flex items-center justify-center gap-1">
@@ -68,7 +70,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
         </div>
       </div>
 
-      {/* Summary */}
       <div className="bg-card border rounded-lg divide-y">
         <div className="p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Vehicle</p>
@@ -80,7 +81,7 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
             <div className="flex justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium text-foreground">{coverage.planName}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Term</span><span className="font-medium text-foreground">{coverage.yearsCovered} {coverage.yearsCovered === 1 ? "Year" : "Years"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Mileage</span><span className="font-medium text-foreground">{coverage.mileageCovered.toLocaleString()} km</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Deductible</span><span className="font-medium text-foreground">${coverage.deductible.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Deductible</span><span className="font-medium text-foreground">{coverage.deductible}</span></div>
           </div>
         </div>
       </div>

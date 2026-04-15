@@ -76,6 +76,7 @@ export default function AdminDashboard() {
           years_covered: r.yearsCovered,
           mileage_covered: r.mileageCovered,
           deductible: r.deductible,
+          deductible_cost: r.deductibleCost,
           price: r.price,
           rental_plus: r.rentalPlus,
         }));

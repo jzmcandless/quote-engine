@@ -25,7 +25,7 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [yearsOptions, setYearsOptions] = useState<number[]>([]);
   const [mileageOptions, setMileageOptions] = useState<number[]>([]);
-  const [deductibleOptions, setDeductibleOptions] = useState<number[]>([]);
+  const [deductibleOptions, setDeductibleOptions] = useState<string[]>([]);
 
   useEffect(() => {
     supabase
@@ -51,7 +51,7 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
       if (data) {
         setYearsOptions([...new Set(data.map((d) => d.years_covered))].sort((a, b) => a - b));
         setMileageOptions([...new Set(data.map((d) => d.mileage_covered))].sort((a, b) => a - b));
-        setDeductibleOptions([...new Set(data.map((d) => d.deductible))].sort((a, b) => a - b));
+        setDeductibleOptions([...new Set(data.map((d) => d.deductible))]);
       }
     });
   }, [coverage.planId, vehicleClass]);
@@ -77,7 +77,7 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
           {plans.map((plan) => (
             <button
               key={plan.id}
-              onClick={() => onChange({ ...coverage, planId: plan.id, planName: plan.name, yearsCovered: 0, mileageCovered: 0, deductible: 0 })}
+              onClick={() => onChange({ ...coverage, planId: plan.id, planName: plan.name, yearsCovered: 0, mileageCovered: 0, deductible: '' })}
               className={cn(
                 "text-left p-4 rounded-lg border-2 transition-all",
                 coverage.planId === plan.id
@@ -127,13 +127,13 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
           <div>
             <Label className="text-sm font-medium mb-1.5 block">Deductible</Label>
             <Select
-              value={coverage.deductible ? coverage.deductible.toString() : ""}
-              onValueChange={(v) => onChange({ ...coverage, deductible: Number(v) })}
+              value={coverage.deductible}
+              onValueChange={(v) => onChange({ ...coverage, deductible: v })}
             >
               <SelectTrigger><SelectValue placeholder="Select deductible" /></SelectTrigger>
               <SelectContent>
                 {deductibleOptions.map((d) => (
-                  <SelectItem key={d} value={d.toString()}>${d.toLocaleString()}</SelectItem>
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
