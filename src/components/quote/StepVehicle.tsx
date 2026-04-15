@@ -15,6 +15,10 @@ interface StepVehicleProps {
 export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 7 }, (_, i) => currentYear + 1 - i);
+  const [makes, setMakes] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const [drivetrains, setDrivetrains] = useState<string[]>([]);
+  const [fuelTypes, setFuelTypes] = useState<string[]>([]);
 
   // Load makes when year changes
   useEffect(() => {
