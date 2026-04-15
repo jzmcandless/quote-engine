@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Upload, Database, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parsePricingCSV } from "@/lib/csvParser";
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
