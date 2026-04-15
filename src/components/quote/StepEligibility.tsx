@@ -32,6 +32,8 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
       .eq("year", vehicle.year!)
       .eq("make", vehicle.make)
       .eq("model", vehicle.model)
+      .eq("drivetrain", vehicle.drivetrain)
+      .eq("fuel_type", vehicle.fuelType)
       .single();
 
     const vehicleClass = vehicleData?.vehicle_class ?? null;

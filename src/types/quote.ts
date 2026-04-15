@@ -2,6 +2,8 @@ export interface VehicleSelection {
   year: number | null;
   make: string;
   model: string;
+  drivetrain: string;
+  fuelType: string;
 }
 
 export interface AdditionalDetails {
@@ -29,7 +31,7 @@ export interface QuoteState {
 
 export const initialQuoteState: QuoteState = {
   step: 1,
-  vehicle: { year: null, make: '', model: '' },
+  vehicle: { year: null, make: '', model: '', drivetrain: '', fuelType: '' },
   additionalDetails: {},
   isEligible: null,
   ineligibleMessage: '',
