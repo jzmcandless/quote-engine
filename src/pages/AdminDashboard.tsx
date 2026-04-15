@@ -200,8 +200,8 @@ export default function AdminDashboard() {
               {importType === "pricing" ? (
                 <>
                   <p className="font-medium text-foreground mb-1">Pricing CSV format (matrix/pivot):</p>
-                  <code className="text-xs block">Plan Type, (term), Distance Coverage, Category A, Category B, ..., Category H, Rental Plus!, Deductible</code>
-                  <p className="mt-2 text-xs">Categories are unpivoted into individual rows. Prices can have $ and commas. Term like "4 Year Plan" is auto-parsed.</p>
+                  <code className="text-xs block">Plan Type, (term), Distance Coverage, Category A, ..., Category H, Rental Plus!, $0 Deductible, Disappearing Deductible, $50 Deductible, $200 Deductible</code>
+                  <p className="mt-2 text-xs">Categories are unpivoted into individual rows. Each deductible column creates separate pricing entries. Prices can have $ and commas. Term like "4 Year Plan" is auto-parsed.</p>
                 </>
               ) : (
                 <>
