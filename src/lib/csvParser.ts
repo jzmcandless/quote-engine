@@ -27,6 +27,7 @@ function parseCSVRows(text: string): string[][] {
     const ch = text[i];
     if (ch === '"') {
       inQuotes = !inQuotes;
+      current += ch; // preserve quotes for parseCSVLine
     } else if (ch === "\n" && !inQuotes) {
       if (current.trim() !== "") rows.push(parseCSVLine(current));
       current = "";
