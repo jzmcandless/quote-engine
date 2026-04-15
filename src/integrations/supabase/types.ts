@@ -62,6 +62,7 @@ export type Database = {
           mileage_covered: number
           plan_id: string
           price: number
+          rental_plus: number | null
           updated_at: string
           vehicle_class: string | null
           years_covered: number
@@ -74,6 +75,7 @@ export type Database = {
           mileage_covered: number
           plan_id: string
           price: number
+          rental_plus?: number | null
           updated_at?: string
           vehicle_class?: string | null
           years_covered: number
@@ -86,6 +88,7 @@ export type Database = {
           mileage_covered?: number
           plan_id?: string
           price?: number
+          rental_plus?: number | null
           updated_at?: string
           vehicle_class?: string | null
           years_covered?: number

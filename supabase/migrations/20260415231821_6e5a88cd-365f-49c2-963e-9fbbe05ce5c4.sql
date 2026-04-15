@@ -1,0 +1,1 @@
+ALTER TABLE public.coverage_pricing ADD COLUMN rental_plus numeric DEFAULT 0;
