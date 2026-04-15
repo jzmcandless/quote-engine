@@ -230,6 +230,8 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          drivetrain: string | null
+          fuel_type: string | null
           id: string
           make: string
           model: string
@@ -240,6 +242,8 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          drivetrain?: string | null
+          fuel_type?: string | null
           id?: string
           make: string
           model: string
@@ -250,6 +254,8 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          drivetrain?: string | null
+          fuel_type?: string | null
           id?: string
           make?: string
           model?: string
