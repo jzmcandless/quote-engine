@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Upload, Database, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parsePricingCSV } from "@/lib/csvParser";
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -49,39 +50,43 @@ export default function AdminDashboard() {
 
     try {
       const text = await file.text();
-      const lines = text.trim().split("\n");
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
 
       if (importType === "pricing") {
-        // Expected: plan_name,vehicle_class,years_covered,mileage_covered,deductible,price
-        const { data: plans } = await supabase.from("plans").select("id, name");
-        const planMap = new Map(plans?.map((p) => [p.name.toLowerCase(), p.id]) ?? []);
+        const parsed = parsePricingCSV(text);
 
-        const rows = [];
-        for (let i = 1; i < lines.length; i++) {
-          const vals = lines[i].split(",").map((v) => v.trim());
-          const planName = vals[headers.indexOf("plan_name")];
-          const planId = planMap.get(planName?.toLowerCase());
-          if (!planId) continue;
+        // Collect unique plan names and auto-create if needed
+        const uniquePlans = [...new Set(parsed.map((r) => r.planName))];
+        const { data: existingPlans } = await supabase.from("plans").select("id, name");
+        const planMap = new Map(existingPlans?.map((p) => [p.name.toLowerCase(), p.id]) ?? []);
 
-          rows.push({
-            plan_id: planId,
-            vehicle_class: vals[headers.indexOf("vehicle_class")] || null,
-            years_covered: Number(vals[headers.indexOf("years_covered")]),
-            mileage_covered: Number(vals[headers.indexOf("mileage_covered")]),
-            deductible: Number(vals[headers.indexOf("deductible")]),
-            price: Number(vals[headers.indexOf("price")]),
-          });
+        for (const name of uniquePlans) {
+          if (!planMap.has(name.toLowerCase())) {
+            const { data: newPlan } = await supabase
+              .from("plans")
+              .insert({ name, active: true })
+              .select("id")
+              .single();
+            if (newPlan) planMap.set(name.toLowerCase(), newPlan.id);
+          }
         }
 
-        if (rows.length === 0) throw new Error("No valid rows found. Check plan names match existing plans.");
+        const rows = parsed.map((r) => ({
+          plan_id: planMap.get(r.planName.toLowerCase())!,
+          vehicle_class: r.vehicleClass,
+          years_covered: r.yearsCovered,
+          mileage_covered: r.mileageCovered,
+          deductible: r.deductible,
+          price: r.price,
+          rental_plus: r.rentalPlus,
+        }));
 
         const { error } = await supabase.from("coverage_pricing").insert(rows);
         if (error) throw error;
 
-        toast({ title: "Import successful", description: `${rows.length} pricing rows imported.` });
+        toast({ title: "Import successful", description: `${rows.length} pricing rows imported (unpivoted from ${parsed.length / (new Set(parsed.map(r => r.vehicleClass)).size) || 1} CSV rows).` });
       } else if (importType === "eligibility") {
-        // Expected: make,model,min_year,max_year,max_mileage,eligible,ineligible_message
+        const lines = text.trim().split("\n");
+        const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
         const rows = [];
         for (let i = 1; i < lines.length; i++) {
           const vals = lines[i].split(",").map((v) => v.trim());
@@ -95,10 +100,8 @@ export default function AdminDashboard() {
             ineligible_message: vals[headers.indexOf("ineligible_message")] || null,
           });
         }
-
         const { error } = await supabase.from("eligibility_rules").insert(rows);
         if (error) throw error;
-
         toast({ title: "Import successful", description: `${rows.length} eligibility rules imported.` });
       }
 
@@ -195,8 +198,9 @@ export default function AdminDashboard() {
             <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
               {importType === "pricing" ? (
                 <>
-                  <p className="font-medium text-foreground mb-1">Pricing CSV format:</p>
-                  <code className="text-xs">plan_name,vehicle_class,years_covered,mileage_covered,deductible,price</code>
+                  <p className="font-medium text-foreground mb-1">Pricing CSV format (matrix/pivot):</p>
+                  <code className="text-xs block">Plan Type, (term), Distance Coverage, Category A, Category B, ..., Category H, Rental Plus!, Deductible</code>
+                  <p className="mt-2 text-xs">Categories are unpivoted into individual rows. Prices can have $ and commas. Term like "4 Year Plan" is auto-parsed.</p>
                 </>
               ) : (
                 <>
