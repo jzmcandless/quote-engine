@@ -13,23 +13,12 @@ interface StepVehicleProps {
 }
 
 export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
-  const [years, setYears] = useState<number[]>([]);
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 7 }, (_, i) => currentYear + 1 - i);
   const [makes, setMakes] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [drivetrains, setDrivetrains] = useState<string[]>([]);
   const [fuelTypes, setFuelTypes] = useState<string[]>([]);
-
-  // Load years
-  useEffect(() => {
-    supabase
-      .from("vehicles")
-      .select("year")
-      .eq("active", true)
-      .order("year", { ascending: false })
-      .then(({ data }) => {
-        if (data) setYears([...new Set(data.map((d) => d.year))]);
-      });
-  }, []);
 
   // Load makes when year changes
   useEffect(() => {
