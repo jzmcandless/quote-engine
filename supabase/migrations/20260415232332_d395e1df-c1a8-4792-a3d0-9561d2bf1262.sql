@@ -1,0 +1,2 @@
+ALTER TABLE public.vehicles DROP CONSTRAINT IF EXISTS vehicles_year_make_model_key;
+ALTER TABLE public.vehicles ADD CONSTRAINT vehicles_year_make_model_dt_fuel_key UNIQUE (year, make, model, drivetrain, fuel_type);
