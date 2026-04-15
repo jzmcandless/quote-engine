@@ -14,16 +14,263 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      additional_vehicle_fields: {
+        Row: {
+          active: boolean
+          created_at: string
+          field_name: string
+          id: string
+          input_type: string
+          label: string
+          options: Json | null
+          required_for_eligibility: boolean
+          required_for_pricing: boolean
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          field_name: string
+          id?: string
+          input_type?: string
+          label: string
+          options?: Json | null
+          required_for_eligibility?: boolean
+          required_for_pricing?: boolean
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          field_name?: string
+          id?: string
+          input_type?: string
+          label?: string
+          options?: Json | null
+          required_for_eligibility?: boolean
+          required_for_pricing?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      coverage_pricing: {
+        Row: {
+          active: boolean
+          created_at: string
+          deductible: number
+          id: string
+          mileage_covered: number
+          plan_id: string
+          price: number
+          updated_at: string
+          vehicle_class: string | null
+          years_covered: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          deductible: number
+          id?: string
+          mileage_covered: number
+          plan_id: string
+          price: number
+          updated_at?: string
+          vehicle_class?: string | null
+          years_covered: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          deductible?: number
+          id?: string
+          mileage_covered?: number
+          plan_id?: string
+          price?: number
+          updated_at?: string
+          vehicle_class?: string | null
+          years_covered?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_pricing_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      csv_import_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          file_url: string
+          id: string
+          import_type: string
+          row_count: number | null
+          status: string
+          user_id: string | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          file_url: string
+          id?: string
+          import_type: string
+          row_count?: number | null
+          status?: string
+          user_id?: string | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          file_url?: string
+          id?: string
+          import_type?: string
+          row_count?: number | null
+          status?: string
+          user_id?: string | null
+          validation_errors?: Json | null
+        }
+        Relationships: []
+      }
+      eligibility_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          eligible: boolean
+          id: string
+          ineligible_message: string | null
+          make: string | null
+          max_mileage: number | null
+          max_year: number | null
+          min_year: number | null
+          model: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          eligible?: boolean
+          id?: string
+          ineligible_message?: string | null
+          make?: string | null
+          max_mileage?: number | null
+          max_year?: number | null
+          min_year?: number | null
+          model?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          eligible?: boolean
+          id?: string
+          ineligible_message?: string | null
+          make?: string | null
+          max_mileage?: number | null
+          max_year?: number | null
+          min_year?: number | null
+          model?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          make: string
+          model: string
+          updated_at: string
+          vehicle_class: string | null
+          year: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          make: string
+          model: string
+          updated_at?: string
+          vehicle_class?: string | null
+          year: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          make?: string
+          model?: string
+          updated_at?: string
+          vehicle_class?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +397,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
