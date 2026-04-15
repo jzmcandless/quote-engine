@@ -15,7 +15,7 @@ export interface CoverageSelection {
   planName: string;
   yearsCovered: number;
   mileageCovered: number;
-  deductible: number;
+  deductible: string;
 }
 
 export interface QuoteState {
@@ -35,7 +35,7 @@ export const initialQuoteState: QuoteState = {
   additionalDetails: {},
   isEligible: null,
   ineligibleMessage: '',
-  coverage: { planId: '', planName: '', yearsCovered: 0, mileageCovered: 0, deductible: 0 },
+  coverage: { planId: '', planName: '', yearsCovered: 0, mileageCovered: 0, deductible: '' },
   price: null,
   vehicleClass: null,
 };
