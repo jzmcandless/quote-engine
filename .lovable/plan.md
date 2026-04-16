@@ -1,23 +1,14 @@
 
 
-## Plan: Cascade-filter coverage dropdowns
+## Plan: Add Payment Placeholder and Update Confirmation Page
 
-### Problem
-Currently, all three dropdowns (years, mileage, deductible) are populated from the full pricing dataset for the selected plan. When a user picks a coverage term (e.g. 3 years), mileage options that don't exist for that term still appear.
+### Changes to `src/components/quote/StepConfirm.tsx`
 
-### Solution
-Store the raw pricing rows and filter mileage/deductible options based on prior selections. Each dropdown cascades into the next, and changing an earlier selection resets later ones.
+1. **Add a "Payment Details" section** between the vehicle confirmation and the action buttons — a placeholder card with disabled credit card fields (card number, expiry, CVV) and a note like "Payment processing coming soon".
 
-### Technical Details
-**File: `src/components/quote/StepCoverage.tsx`**
+2. **Update the success message** after submission to: "Thanks for purchasing a Ford Extended Warranty. A member of our team will be in touch with final paperwork shortly."
 
-1. Add a state variable `allRows` to store the full query result (array of `{years_covered, mileage_covered, deductible}`).
+3. **Change the submit button label** from "Submit" to "Complete Purchase" (or similar).
 
-2. Replace the current `setYearsOptions` / `setMileageOptions` / `setDeductibleOptions` logic in the plan useEffect — just store raw data in `allRows` and derive `yearsOptions` from it.
-
-3. Compute `mileageOptions` by filtering `allRows` where `years_covered === coverage.yearsCovered`. Compute `deductibleOptions` by further filtering where `mileage_covered === coverage.mileageCovered`. Use `useMemo` for both.
-
-4. When `yearsCovered` changes, reset `mileageCovered` to 0 and `deductible` to `''`. When `mileageCovered` changes, reset `deductible` to `''`. This is done in the `onValueChange` handlers.
-
-5. Remove the separate `mileageOptions` and `deductibleOptions` state variables — they become derived values.
+No other files need changes.
 
