@@ -18,6 +18,12 @@ export interface CoverageSelection {
   deductible: string;
 }
 
+export interface AppliedSurcharge {
+  type: string;
+  label: string;
+  amount: number;
+}
+
 export interface QuoteState {
   step: number;
   vehicle: VehicleSelection;
@@ -26,6 +32,7 @@ export interface QuoteState {
   ineligibleMessage: string;
   coverage: CoverageSelection;
   price: number | null;
+  surcharges: AppliedSurcharge[];
   vehicleClass: string | null;
 }
 
