@@ -84,10 +84,12 @@ export function QuoteWizard() {
                   vehicle={state.vehicle}
                   vehicleClass={state.vehicleClass}
                   coverage={state.coverage}
+                  details={state.additionalDetails}
                   price={state.price}
-                  onPriceGenerated={(price) => setState((s) => ({ ...s, price }))}
+                  surcharges={state.surcharges}
+                  onPriceGenerated={(price, surcharges) => setState((s) => ({ ...s, price, surcharges }))}
                   onBack={() => {
-                    setState((s) => ({ ...s, price: null }));
+                    setState((s) => ({ ...s, price: null, surcharges: [] }));
                     goTo(4);
                   }}
                   onRestart={() => setState(initialQuoteState)}
