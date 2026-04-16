@@ -94,8 +94,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, price, sur
     );
   }
 
-  const surchargeTotal = surcharges.reduce((sum, s) => sum + s.amount, 0);
-  const basePrice = price - surchargeTotal;
 
   return (
     <div className="space-y-6">
@@ -119,8 +117,14 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, price, sur
         <div className="p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Vehicle</p>
           <p className="font-semibold text-foreground">{vehicle.year} {vehicle.make} {vehicle.model}</p>
-          {details.commercial_use === "Yes" && <p className="text-xs text-muted-foreground mt-1">Commercial Use</p>}
-          {details.has_snowplow === "Yes" && <p className="text-xs text-muted-foreground mt-1">Snowplow Equipped</p>}
+          <div className="space-y-1 mt-2 text-sm">
+            {details.commercial_use === "Yes" && (
+              <div className="flex justify-between"><span className="text-muted-foreground">Commercial Use</span><span className="font-medium text-foreground">Yes</span></div>
+            )}
+            {details.has_snowplow === "Yes" && (
+              <div className="flex justify-between"><span className="text-muted-foreground">Snowplow Equipped</span><span className="font-medium text-foreground">Yes</span></div>
+            )}
+          </div>
         </div>
         <div className="p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Coverage</p>
@@ -129,22 +133,8 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, price, sur
             <div className="flex justify-between"><span className="text-muted-foreground">Term</span><span className="font-medium text-foreground">{coverage.yearsCovered} {coverage.yearsCovered === 1 ? "Year" : "Years"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Mileage</span><span className="font-medium text-foreground">{coverage.mileageCovered.toLocaleString()} km</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Deductible</span><span className="font-medium text-foreground">{coverage.deductible}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span className="font-medium text-foreground">${basePrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span></div>
           </div>
         </div>
-        {surcharges.length > 0 && (
-          <div className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Surcharges</p>
-            <div className="space-y-1.5 text-sm">
-              {surcharges.map((s) => (
-                <div key={s.type} className="flex justify-between">
-                  <span className="text-muted-foreground">{s.label}</span>
-                  <span className="font-medium text-foreground">${s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex gap-3">
