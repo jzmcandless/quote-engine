@@ -142,6 +142,48 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_quote_requests: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          message: string | null
+          phone: string
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: number | null
+          vin: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          message?: string | null
+          phone: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
+          vin?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          message?: string | null
+          phone?: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
+          vin?: string | null
+        }
+        Relationships: []
+      }
       eligibility_rules: {
         Row: {
           active: boolean
