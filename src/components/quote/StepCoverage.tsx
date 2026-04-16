@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,12 @@ interface Plan {
   description: string | null;
 }
 
+interface PricingRow {
+  years_covered: number;
+  mileage_covered: number;
+  deductible: string;
+}
+
 interface StepCoverageProps {
   vehicleClass: string | null;
   coverage: CoverageSelection;
@@ -23,9 +29,7 @@ interface StepCoverageProps {
 
 export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack }: StepCoverageProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [yearsOptions, setYearsOptions] = useState<number[]>([]);
-  const [mileageOptions, setMileageOptions] = useState<number[]>([]);
-  const [deductibleOptions, setDeductibleOptions] = useState<string[]>([]);
+  const [allRows, setAllRows] = useState<PricingRow[]>([]);
 
   useEffect(() => {
     supabase
@@ -48,13 +52,38 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
     if (vehicleClass) query.eq("vehicle_class", vehicleClass);
 
     query.then(({ data }) => {
-      if (data) {
-        setYearsOptions([...new Set(data.map((d) => d.years_covered))].sort((a, b) => a - b));
-        setMileageOptions([...new Set(data.map((d) => d.mileage_covered))].sort((a, b) => a - b));
-        setDeductibleOptions([...new Set(data.map((d) => d.deductible))]);
-      }
+      setAllRows(data ?? []);
     });
   }, [coverage.planId, vehicleClass]);
+
+  const yearsOptions = useMemo(
+    () => [...new Set(allRows.map((d) => d.years_covered))].sort((a, b) => a - b),
+    [allRows]
+  );
+
+  const mileageOptions = useMemo(
+    () =>
+      [...new Set(
+        allRows
+          .filter((d) => d.years_covered === coverage.yearsCovered)
+          .map((d) => d.mileage_covered)
+      )].sort((a, b) => a - b),
+    [allRows, coverage.yearsCovered]
+  );
+
+  const deductibleOptions = useMemo(
+    () =>
+      [...new Set(
+        allRows
+          .filter(
+            (d) =>
+              d.years_covered === coverage.yearsCovered &&
+              d.mileage_covered === coverage.mileageCovered
+          )
+          .map((d) => d.deductible)
+      )],
+    [allRows, coverage.yearsCovered, coverage.mileageCovered]
+  );
 
   const canProceed = coverage.planId && coverage.yearsCovered && coverage.mileageCovered && coverage.deductible;
 
@@ -98,7 +127,7 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
             <Label className="text-sm font-medium mb-1.5 block">Coverage Term</Label>
             <Select
               value={coverage.yearsCovered ? coverage.yearsCovered.toString() : ""}
-              onValueChange={(v) => onChange({ ...coverage, yearsCovered: Number(v) })}
+              onValueChange={(v) => onChange({ ...coverage, yearsCovered: Number(v), mileageCovered: 0, deductible: '' })}
             >
               <SelectTrigger><SelectValue placeholder="Select years" /></SelectTrigger>
               <SelectContent>
@@ -109,35 +138,39 @@ export function StepCoverage({ vehicleClass, coverage, onChange, onNext, onBack 
             </Select>
           </div>
 
-          <div>
-            <Label className="text-sm font-medium mb-1.5 block">Mileage Coverage</Label>
-            <Select
-              value={coverage.mileageCovered ? coverage.mileageCovered.toString() : ""}
-              onValueChange={(v) => onChange({ ...coverage, mileageCovered: Number(v) })}
-            >
-              <SelectTrigger><SelectValue placeholder="Select mileage" /></SelectTrigger>
-              <SelectContent>
-                {mileageOptions.map((m) => (
-                  <SelectItem key={m} value={m.toString()}>{m.toLocaleString()} km</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {coverage.yearsCovered > 0 && mileageOptions.length > 0 && (
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Mileage Coverage</Label>
+              <Select
+                value={coverage.mileageCovered ? coverage.mileageCovered.toString() : ""}
+                onValueChange={(v) => onChange({ ...coverage, mileageCovered: Number(v), deductible: '' })}
+              >
+                <SelectTrigger><SelectValue placeholder="Select mileage" /></SelectTrigger>
+                <SelectContent>
+                  {mileageOptions.map((m) => (
+                    <SelectItem key={m} value={m.toString()}>{m.toLocaleString()} km</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-          <div>
-            <Label className="text-sm font-medium mb-1.5 block">Deductible</Label>
-            <Select
-              value={coverage.deductible}
-              onValueChange={(v) => onChange({ ...coverage, deductible: v })}
-            >
-              <SelectTrigger><SelectValue placeholder="Select deductible" /></SelectTrigger>
-              <SelectContent>
-                {deductibleOptions.map((d) => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {coverage.mileageCovered > 0 && deductibleOptions.length > 0 && (
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Deductible</Label>
+              <Select
+                value={coverage.deductible}
+                onValueChange={(v) => onChange({ ...coverage, deductible: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Select deductible" /></SelectTrigger>
+                <SelectContent>
+                  {deductibleOptions.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </>
       )}
 
