@@ -1,21 +1,23 @@
 
 
-## Plan: Add Eligibility Rules for Mileage and Purchase Timeframe
+## Plan: Cascade-filter coverage dropdowns
 
-### What changes
-1. **Add client-side eligibility checks in `StepEligibility.tsx`** — Before/after the database rules check, add two hard-coded checks:
-   - If `details.mileage` > 36000 → ineligible with message about mileage exceeding 36,000 km
-   - If `details.purchase_timeframe` === "More than 36 months" → ineligible with message about purchase timeframe
+### Problem
+Currently, all three dropdowns (years, mileage, deductible) are populated from the full pricing dataset for the selected plan. When a user picks a coverage term (e.g. 3 years), mileage options that don't exist for that term still appear.
 
-2. **Update placeholder text in `StepDetails.tsx`** — Change the `SelectValue` placeholder from `` `Select ${field.label.toLowerCase()}` `` to `"Select one"` for select-type fields (line 103).
+### Solution
+Store the raw pricing rows and filter mileage/deductible options based on prior selections. Each dropdown cascades into the next, and changing an earlier selection resets later ones.
 
-### Technical details
+### Technical Details
+**File: `src/components/quote/StepCoverage.tsx`**
 
-**File: `src/components/quote/StepEligibility.tsx`**
-- Add checks at the start of `checkEligibility()` (after line 26), before the database query:
-  - `Number(details.mileage) > 36000` → call `onResult(false, "Vehicles with over 36,000 km are not eligible for coverage.", null)` and return
-  - `details.purchase_timeframe === "More than 36 months"` → call `onResult(false, "Vehicles purchased more than 36 months ago are not eligible for coverage.", null)` and return
+1. Add a state variable `allRows` to store the full query result (array of `{years_covered, mileage_covered, deductible}`).
 
-**File: `src/components/quote/StepDetails.tsx`**
-- Line 103: Change placeholder to `"Select one"`
+2. Replace the current `setYearsOptions` / `setMileageOptions` / `setDeductibleOptions` logic in the plan useEffect — just store raw data in `allRows` and derive `yearsOptions` from it.
+
+3. Compute `mileageOptions` by filtering `allRows` where `years_covered === coverage.yearsCovered`. Compute `deductibleOptions` by further filtering where `mileage_covered === coverage.mileageCovered`. Use `useMemo` for both.
+
+4. When `yearsCovered` changes, reset `mileageCovered` to 0 and `deductible` to `''`. When `mileageCovered` changes, reset `deductible` to `''`. This is done in the `onValueChange` handlers.
+
+5. Remove the separate `mileageOptions` and `deductibleOptions` state variables — they become derived values.
 
