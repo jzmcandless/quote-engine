@@ -25,6 +25,18 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
   async function checkEligibility() {
     setChecking(true);
 
+    // Client-side eligibility checks
+    if (details.mileage && Number(details.mileage) > 36000) {
+      onResult(false, "Vehicles with over 36,000 km are not eligible for coverage.", null);
+      setChecking(false);
+      return;
+    }
+    if (details.purchase_timeframe === "More than 36 months") {
+      onResult(false, "Vehicles purchased more than 36 months ago are not eligible for coverage.", null);
+      setChecking(false);
+      return;
+    }
+
     // Get vehicle class
     const { data: vehicleData } = await supabase
       .from("vehicles")
