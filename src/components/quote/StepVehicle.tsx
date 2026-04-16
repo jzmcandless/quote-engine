@@ -20,42 +20,38 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
   const [drivetrains, setDrivetrains] = useState<string[]>([]);
   const [fuelTypes, setFuelTypes] = useState<string[]>([]);
 
-  // Load makes when year changes
+  // Load all active makes on mount
   useEffect(() => {
-    if (!vehicle.year) { setMakes([]); return; }
     supabase
       .from("vehicles")
       .select("make")
-      .eq("year", vehicle.year)
       .eq("active", true)
       .order("make")
       .then(({ data }) => {
         if (data) setMakes([...new Set(data.map((d) => d.make))]);
       });
-  }, [vehicle.year]);
+  }, []);
 
   // Load models when make changes
   useEffect(() => {
-    if (!vehicle.year || !vehicle.make) { setModels([]); return; }
+    if (!vehicle.make) { setModels([]); return; }
     supabase
       .from("vehicles")
       .select("model")
-      .eq("year", vehicle.year)
       .eq("make", vehicle.make)
       .eq("active", true)
       .order("model")
       .then(({ data }) => {
         if (data) setModels([...new Set(data.map((d) => d.model))]);
       });
-  }, [vehicle.year, vehicle.make]);
+  }, [vehicle.make]);
 
   // Load drivetrains when model changes
   useEffect(() => {
-    if (!vehicle.year || !vehicle.make || !vehicle.model) { setDrivetrains([]); return; }
+    if (!vehicle.make || !vehicle.model) { setDrivetrains([]); return; }
     supabase
       .from("vehicles")
       .select("drivetrain")
-      .eq("year", vehicle.year)
       .eq("make", vehicle.make)
       .eq("model", vehicle.model)
       .eq("active", true)
@@ -63,21 +59,19 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         if (data) {
           const unique = [...new Set(data.map((d) => d.drivetrain).filter(Boolean))] as string[];
           setDrivetrains(unique);
-          // Auto-select if only one option
           if (unique.length === 1 && !vehicle.drivetrain) {
             onChange({ ...vehicle, drivetrain: unique[0], fuelType: "" });
           }
         }
       });
-  }, [vehicle.year, vehicle.make, vehicle.model]);
+  }, [vehicle.make, vehicle.model]);
 
   // Load fuel types when drivetrain changes
   useEffect(() => {
-    if (!vehicle.year || !vehicle.make || !vehicle.model || !vehicle.drivetrain) { setFuelTypes([]); return; }
+    if (!vehicle.make || !vehicle.model || !vehicle.drivetrain) { setFuelTypes([]); return; }
     supabase
       .from("vehicles")
       .select("fuel_type")
-      .eq("year", vehicle.year)
       .eq("make", vehicle.make)
       .eq("model", vehicle.model)
       .eq("drivetrain", vehicle.drivetrain)
@@ -86,13 +80,12 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         if (data) {
           const unique = [...new Set(data.map((d) => d.fuel_type).filter(Boolean))] as string[];
           setFuelTypes(unique);
-          // Auto-select if only one option
           if (unique.length === 1 && !vehicle.fuelType) {
             onChange({ ...vehicle, fuelType: unique[0] });
           }
         }
       });
-  }, [vehicle.year, vehicle.make, vehicle.model, vehicle.drivetrain]);
+  }, [vehicle.make, vehicle.model, vehicle.drivetrain]);
 
   const canProceed = vehicle.year && vehicle.make && vehicle.model && vehicle.drivetrain && vehicle.fuelType;
 
