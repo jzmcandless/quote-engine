@@ -44,5 +44,6 @@ export const initialQuoteState: QuoteState = {
   ineligibleMessage: '',
   coverage: { planId: '', planName: '', yearsCovered: 0, mileageCovered: 0, deductible: '' },
   price: null,
+  surcharges: [],
   vehicleClass: null,
 };
