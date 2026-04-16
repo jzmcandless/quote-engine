@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { VehicleSelection, AdditionalDetails } from "@/types/quote";
-import { ShieldCheck, ShieldX, ChevronLeft, ChevronRight, Loader2, Phone } from "lucide-react";
+import { ShieldCheck, ShieldX, ChevronLeft, ChevronRight, Loader2, Send } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface StepEligibilityProps {
   vehicle: VehicleSelection;
@@ -16,6 +19,10 @@ interface StepEligibilityProps {
 
 export function StepEligibility({ vehicle, details, isEligible, ineligibleMessage, onResult, onNext, onBack }: StepEligibilityProps) {
   const [checking, setChecking] = useState(false);
+  const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "", phone: "", vin: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isEligible !== null) return;
@@ -57,13 +64,11 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
       .eq("active", true);
 
     if (!rules || rules.length === 0) {
-      // No rules = eligible by default
       onResult(true, "", vehicleClass);
       setChecking(false);
       return;
     }
 
-    // Find matching rules
     for (const rule of rules) {
       const makeMatch = !rule.make || rule.make === vehicle.make;
       const modelMatch = !rule.model || rule.model === vehicle.model;
@@ -84,6 +89,33 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
     setChecking(false);
   }
 
+  async function handleContactSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+
+    const { error } = await supabase.from("custom_quote_requests").insert({
+      first_name: contactForm.firstName.trim(),
+      last_name: contactForm.lastName.trim(),
+      email: contactForm.email.trim(),
+      phone: contactForm.phone.trim(),
+      vin: contactForm.vin.trim() || null,
+      vehicle_year: vehicle.year,
+      vehicle_make: vehicle.make,
+      vehicle_model: vehicle.model,
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+      toast({ title: "Something went wrong", description: "Please try again later.", variant: "destructive" });
+      return;
+    }
+
+    setSubmitted(true);
+  }
+
+  const canSubmit = contactForm.firstName.trim() && contactForm.lastName.trim() && contactForm.email.trim() && contactForm.phone.trim();
+
   if (checking) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -94,23 +126,104 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
   }
 
   if (isEligible === false) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col items-center text-center py-6">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-            <ShieldX className="w-8 h-8 text-destructive" />
+    if (submitted) {
+      return (
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center py-6">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Send className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-heading font-bold text-foreground mb-2">Request Submitted!</h2>
+            <p className="text-muted-foreground max-w-sm">
+              Thank you! Our team will review your information and get back to you with a custom warranty quote.
+            </p>
           </div>
-          <h2 className="text-xl font-heading font-bold text-foreground mb-2">Vehicle Not Eligible</h2>
-          <p className="text-muted-foreground max-w-sm">{ineligibleMessage}</p>
-        </div>
-        <div className="bg-muted/50 rounded-lg p-4 text-center">
-          <p className="text-sm text-muted-foreground mb-2">Have questions? Our team can help.</p>
-          <Button variant="outline" size="sm">
-            <Phone className="w-4 h-4 mr-2" /> Contact Us
+          <Button variant="outline" onClick={onBack} size="lg" className="w-full">
+            <ChevronLeft className="w-4 h-4 mr-1" /> Start Over
           </Button>
         </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+            <ShieldX className="w-7 h-7 text-destructive" />
+          </div>
+          <h2 className="text-xl font-heading font-bold text-foreground mb-1">Request a Custom Warranty Quote</h2>
+          <p className="text-muted-foreground text-sm max-w-sm">
+            Your {vehicle.make} {vehicle.model} is not eligible for an online quote. Please contact us for a custom warranty quote.
+          </p>
+        </div>
+
+        <form onSubmit={handleContactSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">
+                First Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="First Name"
+                value={contactForm.firstName}
+                onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                maxLength={100}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">
+                Last Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="Last Name"
+                value={contactForm.lastName}
+                onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
+                maxLength={100}
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">
+              Email Address <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="email"
+              placeholder="Email Address"
+              value={contactForm.email}
+              onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+              maxLength={255}
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">
+              Phone <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="tel"
+              placeholder="Phone"
+              value={contactForm.phone}
+              onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">VIN</Label>
+            <Input
+              placeholder="VIN"
+              value={contactForm.vin}
+              onChange={(e) => setContactForm({ ...contactForm, vin: e.target.value })}
+              maxLength={17}
+            />
+          </div>
+
+          <Button type="submit" disabled={!canSubmit || submitting} className="w-full" size="lg">
+            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Submit Request
+          </Button>
+        </form>
+
         <Button variant="outline" onClick={onBack} size="lg" className="w-full">
-          <ChevronLeft className="w-4 h-4 mr-1" /> Try Another Vehicle
+          <ChevronLeft className="w-4 h-4 mr-1" /> Back
         </Button>
       </div>
     );
