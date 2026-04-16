@@ -77,8 +77,10 @@ export function StepConfirm({ vehicle, details, coverage, price, onBack, onResta
     return (
       <div className="flex flex-col items-center text-center py-8 space-y-4">
         <CheckCircle className="w-14 h-14 text-primary" />
-        <h2 className="text-xl font-heading font-bold text-foreground">Submission Received!</h2>
-        <p className="text-sm text-muted-foreground">We'll be in touch shortly to finalize your warranty.</p>
+        <h2 className="text-xl font-heading font-bold text-foreground">Thank You!</h2>
+        <p className="text-sm text-muted-foreground">
+          Thanks for purchasing a Ford Extended Warranty. A member of our team will be in touch with final paperwork shortly.
+        </p>
         <Button onClick={onRestart} size="lg" className="mt-4">Start New Quote</Button>
       </div>
     );
@@ -171,14 +173,30 @@ export function StepConfirm({ vehicle, details, coverage, price, onBack, onResta
         </div>
       </div>
 
+      {/* Payment Details Placeholder */}
+      <div>
+        <h2 className="text-lg font-heading font-bold text-foreground mb-3">Payment Details</h2>
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+            <CreditCard className="w-4 h-4" />
+            <span>Payment processing coming soon</span>
+          </div>
+          <Input placeholder="Card Number" disabled className="bg-muted/50" />
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="MM / YY" disabled className="bg-muted/50" />
+            <Input placeholder="CVV" disabled className="bg-muted/50" />
+          </div>
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onBack} size="lg">
           <ChevronLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <Button type="submit" size="lg" disabled={!requiredFilled || loading} className="flex-1">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
-          Submit
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CreditCard className="w-4 h-4 mr-1" />}
+          Complete Purchase
         </Button>
       </div>
     </form>
