@@ -12,9 +12,10 @@ interface StepQuoteProps {
   onPriceGenerated: (price: number) => void;
   onBack: () => void;
   onRestart: () => void;
+  onProceed: () => void;
 }
 
-export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGenerated, onBack, onRestart }: StepQuoteProps) {
+export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGenerated, onBack, onRestart, onProceed }: StepQuoteProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export function StepQuote({ vehicle, vehicleClass, coverage, price, onPriceGener
       <div className="flex gap-3">
         <Button variant="outline" onClick={onBack} size="lg"><ChevronLeft className="w-4 h-4 mr-1" /> Back</Button>
         <Button variant="outline" onClick={onRestart} size="lg"><RefreshCw className="w-4 h-4 mr-1" /> New Quote</Button>
+        <Button onClick={onProceed} size="lg" className="flex-1">Proceed</Button>
       </div>
     </div>
   );

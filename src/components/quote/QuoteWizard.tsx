@@ -6,6 +6,7 @@ import { StepDetails } from "./StepDetails";
 import { StepEligibility } from "./StepEligibility";
 import { StepCoverage } from "./StepCoverage";
 import { StepQuote } from "./StepQuote";
+import { StepConfirm } from "./StepConfirm";
 import { QuoteState, initialQuoteState } from "@/types/quote";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
@@ -89,6 +90,17 @@ export function QuoteWizard() {
                     setState((s) => ({ ...s, price: null }));
                     goTo(4);
                   }}
+                  onRestart={() => setState(initialQuoteState)}
+                  onProceed={() => goTo(6)}
+                />
+              )}
+              {state.step === 6 && (
+                <StepConfirm
+                  vehicle={state.vehicle}
+                  details={state.additionalDetails}
+                  coverage={state.coverage}
+                  price={state.price!}
+                  onBack={() => goTo(5)}
                   onRestart={() => setState(initialQuoteState)}
                 />
               )}
