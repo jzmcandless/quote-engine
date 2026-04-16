@@ -102,6 +102,7 @@ export function QuoteWizard() {
                   details={state.additionalDetails}
                   coverage={state.coverage}
                   price={state.price!}
+                  surcharges={state.surcharges}
                   onBack={() => goTo(5)}
                   onRestart={() => setState(initialQuoteState)}
                 />
