@@ -100,7 +100,7 @@ export function StepDetails({ details, onChange, onNext, onBack }: StepDetailsPr
                 value={String(details[field.field_name] ?? "")}
                 onValueChange={(v) => onChange({ ...details, [field.field_name]: v })}
               >
-                <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select one" /></SelectTrigger>
                 <SelectContent>
                   {field.options.map((opt) => (
                     <SelectItem key={opt} value={opt}>{opt}</SelectItem>
