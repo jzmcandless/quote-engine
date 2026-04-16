@@ -253,6 +253,47 @@ export type Database = {
         }
         Relationships: []
       }
+      surcharges: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          id: string
+          mileage_threshold: number | null
+          plan_id: string
+          surcharge_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          id?: string
+          mileage_threshold?: number | null
+          plan_id: string
+          surcharge_type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          id?: string
+          mileage_threshold?: number | null
+          plan_id?: string
+          surcharge_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surcharges_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
