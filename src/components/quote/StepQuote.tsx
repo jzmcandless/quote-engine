@@ -94,8 +94,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, price, sur
     );
   }
 
-  const surchargeTotal = surcharges.reduce((sum, s) => sum + s.amount, 0);
-  const basePrice = price - surchargeTotal;
 
   return (
     <div className="space-y-6">
