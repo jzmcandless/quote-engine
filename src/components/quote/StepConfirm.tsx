@@ -76,7 +76,7 @@ export function StepConfirm({ vehicle, details, coverage, price, onBack, onResta
   if (submitted) {
     return (
       <div className="flex flex-col items-center text-center py-8 space-y-4">
-        <CheckCircle className="w-14 h-14 text-green-500" />
+        <CheckCircle className="w-14 h-14 text-primary" />
         <h2 className="text-xl font-heading font-bold text-foreground">Submission Received!</h2>
         <p className="text-sm text-muted-foreground">We'll be in touch shortly to finalize your warranty.</p>
         <Button onClick={onRestart} size="lg" className="mt-4">Start New Quote</Button>
