@@ -63,7 +63,7 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
       vehicle_year: vehicle.year,
       vehicle_make: vehicle.make,
       vehicle_model: vehicle.model,
-      message: `Confirmed quote — ${coverage.planName}, ${coverage.yearsCovered}yr/${coverage.mileageCovered.toLocaleString()}km, $${coverage.deductible} deductible. Price: $${price.toLocaleString("en-US", { minimumFractionDigits: 2 })}. Address: ${form.streetAddress}, ${form.city}, ${form.province}.`,
+      message: `Confirmed quote — ${coverage.planName}, ${coverage.yearsCovered}yr/${coverage.mileageCovered.toLocaleString()}km, ${coverage.deductible}. Price: $${price.toLocaleString("en-US", { minimumFractionDigits: 2 })}${surcharges.length > 0 ? ` (includes surcharges: ${surcharges.map(s => `${s.label}: $${s.amount}`).join(', ')})` : ''}. Address: ${form.streetAddress}, ${form.city}, ${form.province}.`,
     });
 
     setLoading(false);
