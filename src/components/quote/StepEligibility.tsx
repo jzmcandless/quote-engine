@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { VehicleSelection, AdditionalDetails } from "@/types/quote";
 import { ShieldCheck, ShieldX, ChevronLeft, ChevronRight, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { patchSession, markCompleted } from "@/lib/quoteSession";
 
 interface StepEligibilityProps {
   vehicle: VehicleSelection;
@@ -111,6 +112,12 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
       return;
     }
 
+    await markCompleted("completed_custom_request", {
+      first_name: contactForm.firstName.trim(),
+      last_name: contactForm.lastName.trim(),
+      email: contactForm.email.trim(),
+      phone: contactForm.phone.trim(),
+    });
     setSubmitted(true);
   }
 
