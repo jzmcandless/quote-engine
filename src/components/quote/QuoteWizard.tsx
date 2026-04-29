@@ -127,7 +127,7 @@ export function QuoteWizard() {
                     setState((s) => ({ ...s, price: null, surcharges: [] }));
                     goTo(4);
                   }}
-                  onRestart={() => setState(initialQuoteState)}
+                  onRestart={restart}
                   onProceed={() => goTo(6)}
                 />
               )}
@@ -139,7 +139,7 @@ export function QuoteWizard() {
                   price={state.price!}
                   surcharges={state.surcharges}
                   onBack={() => goTo(5)}
-                  onRestart={() => setState(initialQuoteState)}
+                  onRestart={restart}
                 />
               )}
             </motion.div>
