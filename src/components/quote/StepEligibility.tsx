@@ -174,6 +174,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
                 placeholder="First Name"
                 value={contactForm.firstName}
                 onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                onBlur={(e) => patchSession({ first_name: e.target.value.trim() || null })}
                 maxLength={100}
               />
             </div>
@@ -185,6 +186,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
                 placeholder="Last Name"
                 value={contactForm.lastName}
                 onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
+                onBlur={(e) => patchSession({ last_name: e.target.value.trim() || null })}
                 maxLength={100}
               />
             </div>
@@ -198,6 +200,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
               placeholder="Email Address"
               value={contactForm.email}
               onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+              onBlur={(e) => patchSession({ email: e.target.value.trim() || null })}
               maxLength={255}
             />
           </div>
@@ -210,6 +213,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
               placeholder="Phone"
               value={contactForm.phone}
               onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+              onBlur={(e) => patchSession({ phone: e.target.value.trim() || null })}
               maxLength={20}
             />
           </div>
