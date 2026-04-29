@@ -115,6 +115,10 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
                   type={f.type}
                   value={(form as any)[f.key]}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                  onBlur={(e) => {
+                    const map: Record<string, string> = { firstName: "first_name", lastName: "last_name" };
+                    if (map[f.key]) patchSession({ [map[f.key]]: e.target.value.trim() || null });
+                  }}
                   required
                 />
                 <span className="text-destructive text-sm">*</span>
@@ -147,6 +151,7 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
                 type={f.type}
                 value={(form as any)[f.key]}
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                onBlur={(e) => patchSession({ [f.key]: e.target.value.trim() || null })}
                 required
               />
               <span className="text-destructive text-sm">*</span>
