@@ -280,6 +280,81 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_sessions: {
+        Row: {
+          abandoned_notified_at: string | null
+          additional_details: Json | null
+          coverage: Json | null
+          created_at: string
+          current_step: number
+          email: string | null
+          first_name: string | null
+          id: string
+          ineligible_message: string | null
+          is_eligible: boolean | null
+          last_activity_at: string
+          last_name: string | null
+          phone: string | null
+          price: number | null
+          referrer: string | null
+          session_id: string
+          status: string
+          surcharges: Json | null
+          updated_at: string
+          user_agent: string | null
+          vehicle: Json | null
+          vehicle_class: string | null
+        }
+        Insert: {
+          abandoned_notified_at?: string | null
+          additional_details?: Json | null
+          coverage?: Json | null
+          created_at?: string
+          current_step?: number
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          ineligible_message?: string | null
+          is_eligible?: boolean | null
+          last_activity_at?: string
+          last_name?: string | null
+          phone?: string | null
+          price?: number | null
+          referrer?: string | null
+          session_id: string
+          status?: string
+          surcharges?: Json | null
+          updated_at?: string
+          user_agent?: string | null
+          vehicle?: Json | null
+          vehicle_class?: string | null
+        }
+        Update: {
+          abandoned_notified_at?: string | null
+          additional_details?: Json | null
+          coverage?: Json | null
+          created_at?: string
+          current_step?: number
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          ineligible_message?: string | null
+          is_eligible?: boolean | null
+          last_activity_at?: string
+          last_name?: string | null
+          phone?: string | null
+          price?: number | null
+          referrer?: string | null
+          session_id?: string
+          status?: string
+          surcharges?: Json | null
+          updated_at?: string
+          user_agent?: string | null
+          vehicle?: Json | null
+          vehicle_class?: string | null
+        }
+        Relationships: []
+      }
       surcharges: {
         Row: {
           active: boolean
@@ -389,6 +464,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_abandon_notified: { Args: { p_id: string }; Returns: undefined }
+      sweep_quote_sessions: {
+        Args: never
+        Returns: {
+          current_step: number
+          email: string
+          first_name: string
+          last_name: string
+          newly_abandoned_id: string
+          vehicle: Json
+        }[]
+      }
+      upsert_quote_session: {
+        Args: { p_patch: Json; p_session_id: string }
+        Returns: undefined
       }
     }
     Enums: {
