@@ -6,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Upload, Database, FileSpreadsheet, Loader2 } from "lucide-react";
+import { LogOut, Upload, Database, FileSpreadsheet, Loader2, Bell } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { parsePricingCSV } from "@/lib/csvParser";
+import { NotificationsRecipients } from "@/components/admin/NotificationsRecipients";
+import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -164,54 +167,97 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* CSV Import */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading flex items-center gap-2">
-              <Upload className="w-5 h-5" /> CSV Import
-            </CardTitle>
-            <CardDescription>Upload pricing or eligibility data via CSV</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="mb-1.5 block">Import Type</Label>
-              <Select value={importType} onValueChange={setImportType}>
-                <SelectTrigger className="w-60">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pricing">Pricing Matrix</SelectItem>
-                  <SelectItem value="eligibility">Eligibility Rules</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Tabs defaultValue="csv" className="w-full">
+          <TabsList>
+            <TabsTrigger value="csv">
+              <Upload className="w-4 h-4 mr-1.5" /> CSV Import
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="w-4 h-4 mr-1.5" /> Email Notifications
+            </TabsTrigger>
+          </TabsList>
 
-            <div>
-              <Label className="mb-1.5 block">CSV File</Label>
-              <Input type="file" accept=".csv" onChange={handleCSVUpload} disabled={importing} />
-              {importing && (
-                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Importing...
+          <TabsContent value="csv" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading flex items-center gap-2">
+                  <Upload className="w-5 h-5" /> CSV Import
+                </CardTitle>
+                <CardDescription>Upload pricing or eligibility data via CSV</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-1.5 block">Import Type</Label>
+                  <Select value={importType} onValueChange={setImportType}>
+                    <SelectTrigger className="w-60">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pricing">Pricing Matrix</SelectItem>
+                      <SelectItem value="eligibility">Eligibility Rules</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
 
-            <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-              {importType === "pricing" ? (
-                <>
-                  <p className="font-medium text-foreground mb-1">Pricing CSV format (matrix/pivot):</p>
-                  <code className="text-xs block">Plan Type, (term), Distance Coverage, Category A, ..., Category H, Rental Plus!, $0 Deductible, Disappearing Deductible, $50 Deductible, $200 Deductible</code>
-                  <p className="mt-2 text-xs">Categories are unpivoted into individual rows. Each deductible column creates separate pricing entries. Prices can have $ and commas. Term like "4 Year Plan" is auto-parsed.</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium text-foreground mb-1">Eligibility CSV format:</p>
-                  <code className="text-xs">make,model,min_year,max_year,max_mileage,eligible,ineligible_message</code>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <div>
+                  <Label className="mb-1.5 block">CSV File</Label>
+                  <Input type="file" accept=".csv" onChange={handleCSVUpload} disabled={importing} />
+                  {importing && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Importing...
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+                  {importType === "pricing" ? (
+                    <>
+                      <p className="font-medium text-foreground mb-1">Pricing CSV format (matrix/pivot):</p>
+                      <code className="text-xs block">Plan Type, (term), Distance Coverage, Category A, ..., Category H, Rental Plus!, $0 Deductible, Disappearing Deductible, $50 Deductible, $200 Deductible</code>
+                      <p className="mt-2 text-xs">Categories are unpivoted into individual rows. Each deductible column creates separate pricing entries. Prices can have $ and commas. Term like "4 Year Plan" is auto-parsed.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-foreground mb-1">Eligibility CSV format:</p>
+                      <code className="text-xs">make,model,min_year,max_year,max_mileage,eligible,ineligible_message</code>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-4 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading flex items-center gap-2">
+                  <Bell className="w-5 h-5" /> Notification Recipients
+                </CardTitle>
+                <CardDescription>
+                  People who will receive automated notifications when customers
+                  complete a purchase or submit a custom quote request.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <NotificationsRecipients />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading">Email Templates</CardTitle>
+                <CardDescription>
+                  Preview and edit the content of the notification emails.
+                  Email sending isn't wired up yet — saved changes will be used
+                  once it's enabled.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <EmailTemplateEditor />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

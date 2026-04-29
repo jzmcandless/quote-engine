@@ -1,77 +1,41 @@
-## Plan: Email Notifications for Quote Submissions
+## Email Notifications Preview & Editor
 
-### Overview
-Add the ability for admins to receive email notifications whenever:
-1. An **ineligible** customer submits the custom warranty quote request form
-2. An **eligible** customer completes a purchase (final confirm step)
+Add an "Email Notifications" section to the Admin Dashboard so you can manage who gets notified and preview/edit the email content — without wiring up actual sending yet.
 
-Admins manage a list of notification recipients in the admin dashboard. Notifications are sent to every active recipient using Lovable's built-in email infrastructure.
+### What you'll get
 
----
+In `/admin`, the dashboard will be reorganized into tabs:
+- **Overview** — existing stats
+- **CSV Import** — existing importer
+- **Email Notifications** — new
 
-### Prerequisite: Email domain setup
-No email sender domain is configured yet. The first step is setting up a sender domain so notifications come from your brand (e.g. `notifications@yourdomain.com`). I'll prompt you to set this up before sending any emails — it's a one-time DNS configuration handled in-app.
+The Email Notifications tab has two parts:
 
----
+1. **Recipients** — list, add, pause/resume, and remove recipients (uses the existing `notification_recipients` table).
+2. **Templates** — sub-tabs for each notification (Ineligible Quote Request, Purchase Completed) with:
+   - Editable **Subject**, **Heading**, **Intro paragraph**, **Footer**
+   - `{{firstName}}` / `{{lastName}}` token support
+   - **Live preview** on the right showing the email styled exactly how it will send (DM Sans / Inter, teal accents, white body), populated with realistic sample customer/vehicle/coverage data
+   - **Save** / **Reset to default** buttons
 
-### Step 1 — Notification recipients table
-New table `notification_recipients`:
-- `id` (uuid)
-- `email` (text, unique, not null)
-- `name` (text, optional)
-- `active` (boolean, default true)
-- `created_at` (timestamptz)
+The data sections under the intro (Customer, Vehicle, Coverage, Pricing) are rendered automatically from real submission data and aren't editable — keeps the editing surface safe and prevents broken emails.
 
-RLS:
-- Admins can SELECT/INSERT/UPDATE/DELETE (via `has_role(auth.uid(), 'admin')`)
-- No public access
+### Storage approach
 
-### Step 2 — Admin UI for recipients
-Add a new section/tab in `AdminDashboard.tsx` called **"Email Notifications"**:
-- Table listing current recipients (email, name, active toggle, delete)
-- "Add recipient" form with email + optional name
-- Toggle to activate/deactivate without deleting
+Template edits are persisted to **localStorage** in this iteration. When we wire up actual email sending later, we'll move the source of truth into the database so the edge function reads the same content. Defaults live in code so the editor always has a baseline.
 
-### Step 3 — Email infrastructure & templates
-After domain verification, set up Lovable's email infrastructure and create two app-email templates:
+### Files to create
+- `src/lib/emailTemplates.ts` — types, default content, load/save/reset, token interpolation
+- `src/lib/emailSampleData.ts` — sample payloads for each template's preview
+- `src/components/admin/EmailPreview.tsx` — brand-styled email render
+- `src/components/admin/NotificationsRecipients.tsx` — recipients CRUD UI
+- `src/components/admin/EmailTemplateEditor.tsx` — editor + live preview
 
-**Template A — `ineligible-quote-request`**
-Sent when a non-eligible customer submits the contact form on Step 3.
-Includes:
-- Customer: first name, last name, email, phone, VIN
-- Vehicle: year, make, model
-- All additional details captured (mileage, purchase timeframe, drivetrain, fuel type, etc.)
+### Files to edit
+- `src/pages/AdminDashboard.tsx` — wrap content in `Tabs`, add Email Notifications tab
 
-**Template B — `purchase-completed`**
-Sent when an eligible customer completes the purchase on Step 6.
-Includes:
-- Customer: name, address (street, city, province), phone, email, VIN
-- Vehicle: year, make, model, drivetrain, fuel type, all additional details
-- Coverage: plan name, years, mileage, deductible
-- Pricing: total price + any applied surcharges (commercial, snowplow, timeframe)
-
-Both emails sent to **every active recipient** in `notification_recipients` (one send per recipient, looped server-side inside the edge function — this is allowed because each send is triggered by a single user action and goes to people who explicitly opted in to receive these admin notifications).
-
-### Step 4 — Wire up triggers
-- **`StepEligibility.tsx`** — after successful `custom_quote_requests` insert, invoke `send-transactional-email` once per active recipient with template `ineligible-quote-request`.
-- **`StepConfirm.tsx`** — after successful `custom_quote_requests` insert (the purchase confirmation insert), invoke `send-transactional-email` once per active recipient with template `purchase-completed`.
-
-Both invocations use `idempotencyKey` derived from the request UUID + template name + recipient email to prevent duplicate sends on retry.
-
-### Step 5 — Memory update
-Add a memory entry noting the notification recipient system and the two email triggers.
-
----
-
-### What you'll do
-1. Approve this plan
-2. Complete the email domain setup dialog (one-time, ~2 min)
-3. Add at least one recipient in the admin dashboard
-4. Test by submitting an ineligible quote and a completed purchase
-
-### What I'll do
-- Create the `notification_recipients` table + RLS
-- Build the admin UI for managing recipients
-- Set up email infrastructure + both templates
-- Wire up both triggers
-- Update project memory
+### Out of scope (for the next round)
+- DNS / sender domain setup
+- Actual email sending (`send-transactional-email` edge function)
+- Wiring triggers in `StepEligibility` / `StepConfirm`
+- Moving template storage from localStorage to a DB table
