@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Upload, Database, FileSpreadsheet, Loader2, Bell } from "lucide-react";
+import { LogOut, Upload, Database, FileSpreadsheet, Loader2, Bell, Inbox } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { parsePricingCSV } from "@/lib/csvParser";
 import { NotificationsRecipients } from "@/components/admin/NotificationsRecipients";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
+import { SubmissionsTable } from "@/components/admin/SubmissionsTable";
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -167,8 +168,11 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <Tabs defaultValue="csv" className="w-full">
+        <Tabs defaultValue="submissions" className="w-full">
           <TabsList>
+            <TabsTrigger value="submissions">
+              <Inbox className="w-4 h-4 mr-1.5" /> Submissions
+            </TabsTrigger>
             <TabsTrigger value="csv">
               <Upload className="w-4 h-4 mr-1.5" /> CSV Import
             </TabsTrigger>
@@ -176,6 +180,23 @@ export default function AdminDashboard() {
               <Bell className="w-4 h-4 mr-1.5" /> Email Notifications
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="submissions" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading flex items-center gap-2">
+                  <Inbox className="w-5 h-5" /> Quote Submissions
+                </CardTitle>
+                <CardDescription>
+                  Every quote attempt — completed, in progress, and abandoned.
+                  Sessions inactive for over 30 minutes are marked as abandoned automatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SubmissionsTable />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="csv" className="mt-4">
             <Card>

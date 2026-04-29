@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { VehicleSelection, AdditionalDetails } from "@/types/quote";
 import { ShieldCheck, ShieldX, ChevronLeft, ChevronRight, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { patchSession, markCompleted } from "@/lib/quoteSession";
 
 interface StepEligibilityProps {
   vehicle: VehicleSelection;
@@ -111,6 +112,12 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
       return;
     }
 
+    await markCompleted("completed_custom_request", {
+      first_name: contactForm.firstName.trim(),
+      last_name: contactForm.lastName.trim(),
+      email: contactForm.email.trim(),
+      phone: contactForm.phone.trim(),
+    });
     setSubmitted(true);
   }
 
@@ -167,6 +174,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
                 placeholder="First Name"
                 value={contactForm.firstName}
                 onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                onBlur={(e) => patchSession({ first_name: e.target.value.trim() || null })}
                 maxLength={100}
               />
             </div>
@@ -178,6 +186,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
                 placeholder="Last Name"
                 value={contactForm.lastName}
                 onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
+                onBlur={(e) => patchSession({ last_name: e.target.value.trim() || null })}
                 maxLength={100}
               />
             </div>
@@ -191,6 +200,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
               placeholder="Email Address"
               value={contactForm.email}
               onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+              onBlur={(e) => patchSession({ email: e.target.value.trim() || null })}
               maxLength={255}
             />
           </div>
@@ -203,6 +213,7 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
               placeholder="Phone"
               value={contactForm.phone}
               onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+              onBlur={(e) => patchSession({ phone: e.target.value.trim() || null })}
               maxLength={20}
             />
           </div>

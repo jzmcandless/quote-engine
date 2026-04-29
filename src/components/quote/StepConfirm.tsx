@@ -7,6 +7,7 @@ import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharg
 import { ChevronLeft, CreditCard, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { patchSession, markCompleted } from "@/lib/quoteSession";
 
 interface StepConfirmProps {
   vehicle: VehicleSelection;
@@ -70,6 +71,12 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
     if (error) {
       toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });
     } else {
+      await markCompleted("completed_purchase", {
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      });
       setSubmitted(true);
     }
   }
@@ -108,6 +115,10 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
                   type={f.type}
                   value={(form as any)[f.key]}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                  onBlur={(e) => {
+                    const map: Record<string, string> = { firstName: "first_name", lastName: "last_name" };
+                    if (map[f.key]) patchSession({ [map[f.key]]: e.target.value.trim() || null });
+                  }}
                   required
                 />
                 <span className="text-destructive text-sm">*</span>
@@ -140,6 +151,7 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
                 type={f.type}
                 value={(form as any)[f.key]}
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                onBlur={(e) => patchSession({ [f.key]: e.target.value.trim() || null })}
                 required
               />
               <span className="text-destructive text-sm">*</span>
