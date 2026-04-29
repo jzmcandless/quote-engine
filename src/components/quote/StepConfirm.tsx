@@ -7,6 +7,7 @@ import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharg
 import { ChevronLeft, CreditCard, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { patchSession, markCompleted } from "@/lib/quoteSession";
 
 interface StepConfirmProps {
   vehicle: VehicleSelection;
@@ -70,6 +71,12 @@ export function StepConfirm({ vehicle, details, coverage, price, surcharges, onB
     if (error) {
       toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });
     } else {
+      await markCompleted("completed_purchase", {
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      });
       setSubmitted(true);
     }
   }
