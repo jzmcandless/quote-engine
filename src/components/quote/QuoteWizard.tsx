@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProgressBar } from "./ProgressBar";
 import { StepVehicle } from "./StepVehicle";
@@ -10,11 +10,46 @@ import { StepConfirm } from "./StepConfirm";
 import { QuoteState, initialQuoteState } from "@/types/quote";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
+import { initSession, patchSession, heartbeat, clearSessionId } from "@/lib/quoteSession";
 
 export function QuoteWizard() {
   const [state, setState] = useState<QuoteState>(initialQuoteState);
 
+  useEffect(() => {
+    initSession();
+    let visible = !document.hidden;
+    const onVis = () => { visible = !document.hidden; };
+    document.addEventListener("visibilitychange", onVis);
+    const interval = window.setInterval(() => {
+      if (visible) heartbeat();
+    }, 60000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  // Patch session on relevant state changes
+  useEffect(() => {
+    patchSession({
+      current_step: state.step,
+      vehicle: state.vehicle,
+      additional_details: state.additionalDetails,
+      coverage: state.coverage,
+      vehicle_class: state.vehicleClass,
+      is_eligible: state.isEligible,
+      ineligible_message: state.ineligibleMessage || null,
+      price: state.price,
+      surcharges: state.surcharges,
+    });
+  }, [state]);
+
   const goTo = (step: number) => setState((s) => ({ ...s, step }));
+  const restart = () => {
+    clearSessionId();
+    setState(initialQuoteState);
+    initSession();
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start px-4 py-8 sm:py-12">
