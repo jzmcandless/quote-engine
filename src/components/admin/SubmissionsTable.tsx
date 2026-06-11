@@ -56,13 +56,8 @@ export function SubmissionsTable() {
   useEffect(() => { load(); }, [status]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("quote_sessions_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "quote_sessions" }, () => {
-        load();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = window.setInterval(() => { load(); }, 15000);
+    return () => { window.clearInterval(interval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
