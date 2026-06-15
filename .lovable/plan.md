@@ -1,76 +1,41 @@
-## Plan: Submissions Tracking
+# Add Contact Info Step Before Quote
 
-### Locked-in rules
-- Partial = no activity for 30 minutes → marked `abandoned`
-- Contact info saved live (on field blur) as user types
-- Abandoned sessions auto-purged after 365 days
-- Abandon notifications sent to existing notification recipients (queued; deliver once email sending is enabled)
+Insert a new step between **Coverage** and **Quote** that collects the customer's first name, last name, phone, and email. The same values are then pre-filled into the Customer Information section on the Confirm page so the user doesn't re-enter them.
 
-### Database (migration)
-Create `quote_sessions`:
-- `id` uuid PK
-- `session_id` text unique (client-generated, stored in localStorage)
-- `status` text: `in_progress` | `abandoned` | `completed_purchase` | `completed_custom_request` | `completed_ineligible`
-- `current_step` int
-- `vehicle` jsonb, `additional_details` jsonb, `coverage` jsonb, `vehicle_class` text
-- `is_eligible` bool, `ineligible_message` text
-- `price` numeric, `surcharges` jsonb
-- `first_name`, `last_name`, `email`, `phone` text (live-saved)
-- `user_agent`, `referrer` text
-- `created_at`, `updated_at`, `last_activity_at` timestamptz
-- `abandoned_notified_at` timestamptz (null until abandon notification queued)
+## New flow
 
-RLS:
-- Public INSERT (anyone can start a session)
-- Public UPDATE only WHERE `session_id = current_setting` matches (use a security-definer RPC `upsert_quote_session(session_id, patch jsonb)` so clients can't read/modify other rows)
-- SELECT restricted to `has_role(auth.uid(),'admin')`
-- DELETE admin only
+```
+1 Vehicle → 2 Details → 3 Eligibility → 4 Coverage → 5 Contact → 6 Quote → 7 Confirm
+```
 
-Index on `status`, `last_activity_at`, `email`.
+## Changes
 
-Trigger: `update_updated_at_column` on UPDATE.
+**`src/types/quote.ts`**
+- Add `ContactInfo { firstName, lastName, phone, email }` interface.
+- Add `contact: ContactInfo` to `QuoteState` and `initialQuoteState` (empty strings).
 
-### Wizard instrumentation
-- New `src/lib/quoteSession.ts`: getOrCreate `session_id` in localStorage, `patchSession(patch)` calling RPC, `heartbeat()` updating `last_activity_at`, `markCompleted(status)`.
-- `QuoteWizard.tsx`: on mount initialize session row; on every `setState` debounce-patch the changed fields + `current_step`; 60s heartbeat with `visibilitychange` pause.
-- `StepDetails.tsx`: live-save name/email/phone on blur.
-- `StepQuote.tsx` (custom request submit) → `markCompleted('completed_custom_request')`.
-- `StepConfirm.tsx` (purchase) → `markCompleted('completed_purchase')`.
-- `StepEligibility.tsx` ineligible result → `markCompleted('completed_ineligible')`.
+**`src/components/quote/StepContact.tsx`** (new)
+- Form with 4 required inputs (first name, last name, phone, email).
+- Client-side zod validation: trimmed, length limits, valid email, phone format.
+- Continue button disabled until valid; Back returns to Coverage.
 
-### Background sweep (Edge Function + cron)
-- `supabase/functions/sweep-abandoned-sessions/index.ts`: marks `in_progress` rows with `last_activity_at < now() - 30 min` as `abandoned`, then for each newly-abandoned row with an email and `abandoned_notified_at IS NULL`, enqueues an email to active `notification_recipients` (reuses email queue once enabled; safe to call when not enabled — logs and continues), and sets `abandoned_notified_at`.
-- 365-day purge: same function deletes `abandoned` rows older than 365 days.
-- pg_cron: run every 5 minutes (insert into cron via insert tool).
+**`src/components/quote/QuoteWizard.tsx`**
+- Renumber: Quote becomes step 6, Confirm becomes step 7. Insert `StepContact` at step 5.
+- Wire contact state and `patchSession({ first_name, last_name, phone, email })` so the contact info is saved to the session as soon as it's entered (admin dashboard sees it earlier).
+- Update back/next handlers for renumbered steps.
 
-### Admin dashboard — Submissions tab
-New `src/components/admin/SubmissionsTable.tsx`:
-- Filters: All / In Progress / Abandoned / Purchased / Custom Request / Ineligible
-- Search by email/name/vehicle
-- Columns: Date, Status badge, Name, Email, Vehicle, Step reached, Price, Last activity
-- Row click → drawer (`SubmissionDetailDrawer.tsx`) showing full vehicle, details, coverage, price/surcharges, contact, timestamps, user agent, referrer
-- "Export CSV" button for current filter
-- Realtime subscription on `quote_sessions` so new submissions appear live
+**`src/components/quote/ProgressBar.tsx`**
+- Insert `{ number: 5, label: "Contact" }`, shift Quote→6, Confirm→7.
 
-Add "Submissions" tab to `AdminDashboard.tsx` Tabs (alongside CSV Import, Email Notifications).
+**`src/components/quote/StepConfirm.tsx`**
+- Accept `contact: ContactInfo` prop.
+- Initialize the local form's `firstName`, `lastName`, `phone`, `email` from `contact` (still editable in case user wants to correct).
+- Keep existing address / province / VIN fields as-is.
 
-### Files
-**New**
-- `src/lib/quoteSession.ts`
-- `src/components/admin/SubmissionsTable.tsx`
-- `src/components/admin/SubmissionDetailDrawer.tsx`
-- `supabase/functions/sweep-abandoned-sessions/index.ts`
+**`src/components/quote/StepQuote.tsx`**
+- No data changes; only the `onBack` target changes (handled in wizard) to return to Contact (step 5) instead of Coverage.
 
-**Edited**
-- `src/components/quote/QuoteWizard.tsx`
-- `src/components/quote/StepDetails.tsx`
-- `src/components/quote/StepEligibility.tsx`
-- `src/components/quote/StepQuote.tsx`
-- `src/components/quote/StepConfirm.tsx`
-- `src/pages/AdminDashboard.tsx`
+## Notes
 
-**Migrations**
-- Create `quote_sessions` table + RLS + indexes + `upsert_quote_session` RPC
-- Schedule `sweep-abandoned-sessions` via pg_cron every 5 min
-
-Approve and I'll implement.
+- No DB migration needed — `quote_sessions` already stores `first_name`, `last_name`, `phone`, `email`, and `current_step`.
+- Contact data is captured before the price is shown, so abandoned-session sweeps and admin views get customer contact info even if the user drops off at the Quote step.

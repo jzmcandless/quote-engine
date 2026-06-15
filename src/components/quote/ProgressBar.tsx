@@ -6,8 +6,9 @@ const steps = [
   { number: 2, label: "Details" },
   { number: 3, label: "Eligibility" },
   { number: 4, label: "Coverage" },
-  { number: 5, label: "Quote" },
-  { number: 6, label: "Confirm" },
+  { number: 5, label: "Contact" },
+  { number: 6, label: "Quote" },
+  { number: 7, label: "Confirm" },
 ];
 
 interface ProgressBarProps {
