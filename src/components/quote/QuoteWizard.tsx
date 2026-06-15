@@ -5,6 +5,7 @@ import { StepVehicle } from "./StepVehicle";
 import { StepDetails } from "./StepDetails";
 import { StepEligibility } from "./StepEligibility";
 import { StepCoverage } from "./StepCoverage";
+import { StepContact } from "./StepContact";
 import { StepQuote } from "./StepQuote";
 import { StepConfirm } from "./StepConfirm";
 import { QuoteState, initialQuoteState } from "@/types/quote";
@@ -115,6 +116,14 @@ export function QuoteWizard() {
                 />
               )}
               {state.step === 5 && (
+                <StepContact
+                  contact={state.contact}
+                  onChange={(c) => setState((s) => ({ ...s, contact: c }))}
+                  onNext={() => goTo(6)}
+                  onBack={() => goTo(4)}
+                />
+              )}
+              {state.step === 6 && (
                 <StepQuote
                   vehicle={state.vehicle}
                   vehicleClass={state.vehicleClass}
@@ -125,20 +134,21 @@ export function QuoteWizard() {
                   onPriceGenerated={(price, surcharges) => setState((s) => ({ ...s, price, surcharges }))}
                   onBack={() => {
                     setState((s) => ({ ...s, price: null, surcharges: [] }));
-                    goTo(4);
+                    goTo(5);
                   }}
                   onRestart={restart}
-                  onProceed={() => goTo(6)}
+                  onProceed={() => goTo(7)}
                 />
               )}
-              {state.step === 6 && (
+              {state.step === 7 && (
                 <StepConfirm
                   vehicle={state.vehicle}
                   details={state.additionalDetails}
                   coverage={state.coverage}
+                  contact={state.contact}
                   price={state.price!}
                   surcharges={state.surcharges}
-                  onBack={() => goTo(5)}
+                  onBack={() => goTo(6)}
                   onRestart={restart}
                 />
               )}

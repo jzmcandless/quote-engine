@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharge } from "@/types/quote";
+import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharge, ContactInfo } from "@/types/quote";
 import { ChevronLeft, CreditCard, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ interface StepConfirmProps {
   vehicle: VehicleSelection;
   details: AdditionalDetails;
   coverage: CoverageSelection;
+  contact: ContactInfo;
   price: number;
   surcharges: AppliedSurcharge[];
   onBack: () => void;
@@ -26,18 +27,18 @@ const provinces = [
   "Northwest Territories", "Nunavut", "Yukon",
 ];
 
-export function StepConfirm({ vehicle, details, coverage, price, surcharges, onBack, onRestart }: StepConfirmProps) {
+export function StepConfirm({ vehicle, details, coverage, contact, price, surcharges, onBack, onRestart }: StepConfirmProps) {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
+    firstName: contact.firstName,
+    lastName: contact.lastName,
     streetAddress: "",
     city: "",
     province: "",
-    phone: "",
-    email: "",
+    phone: contact.phone,
+    email: contact.email,
     vin: "",
   });
 
