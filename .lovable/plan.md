@@ -1,24 +1,25 @@
-## Import May 26 pricing CSV (replace all)
+## Update surcharges table from CSV
 
-One-time data refresh — no schema or app code changes.
+Replace all rows in `surcharges` with values from the uploaded CSV. The CSV matches the existing schema 1:1 (timeframe, commercial, snowplow per mileage threshold).
 
-### Transformations applied during parse
-- Rename plan `PremuimCARE` → `PremiumCARE` (typo fix, maps to existing plan id).
-- For `PremiumCARE PLUS!`, keep only the `$0 Deductible` rows; drop `Disappearing`, `$50`, `$200`.
-- For all other plans, keep all 5 deductible options as present in the CSV.
-- Auto-create the three new plans not yet in DB: `ExtraCARE`, `BaseCARE`, `PowertrainCARE`.
+### Mapping
+- "Premium CARE" (with space) → existing `PremiumCARE` plan
+- PremiumCARE PLUS! snowplow 60k/80k are blank → not inserted (plan won't offer those tiers)
+- All other plans: full set (timeframe, commercial, 6 snowplow thresholds)
+
+### Values
+Per plan: `timeframe=$100`, `commercial=$500/400/300/200` (varies), snowplow: 60k=$800, 80k=$900, 100k=$1100, 120k=$1300, 150k=$1700... actually 150k=$1500, 200k=$1700.
+
+| Plan | timeframe | commercial | snowplow (60/80/100/120/150/200k) |
+|---|---|---|---|
+| PremiumCARE PLUS! | 100 | 500 | —, —, 1100, 1300, 1500, 1700 |
+| PremiumCARE | 100 | 500 | 800, 900, 1100, 1300, 1500, 1700 |
+| ExtraCARE | 100 | 400 | 800, 900, 1100, 1300, 1500, 1700 |
+| BaseCARE | 100 | 300 | 800, 900, 1100, 1300, 1500, 1700 |
+| PowertrainCARE | 100 | 200 | 800, 900, 1100, 1300, 1500, 1700 |
 
 ### Execution
-1. Generate the SQL locally from `Pricing_May26 - Price.csv` using the existing `parsePricingCSV` logic (Node script, no project files changed).
-2. Run a single migration that:
-   - `INSERT` the three missing plans (idempotent via `ON CONFLICT (name) DO NOTHING`).
-   - `DELETE FROM coverage_pricing` (full wipe).
-   - Bulk `INSERT` all parsed rows with `plan_id` resolved from `plans.name`.
-3. Verify with a count query and a couple of spot checks (PremiumCARE PLUS! Category A 4yr/80k = $1,148; PowertrainCARE Category H 8yr/200k = $6,165).
+Single `supabase--insert` call: `DELETE FROM surcharges;` then bulk `INSERT` (~38 rows) with `plan_id` resolved by name, `active=true`.
 
-### Expected scope
-~136 CSV data rows → roughly:
-- PremiumCARE PLUS!: 13 rows × 8 categories × 1 deductible = 104
-- PremiumCARE / ExtraCARE / BaseCARE / PowertrainCARE: remaining rows × 8 categories × 5 deductibles ≈ 4,900
-
-You'll review the migration before it runs.
+### Verification
+`SELECT plan, type, mileage, amount` joined to plans to confirm counts and spot-check PremiumCARE PLUS! has no 60k/80k rows.
