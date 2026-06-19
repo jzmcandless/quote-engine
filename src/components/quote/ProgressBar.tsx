@@ -6,32 +6,39 @@ const steps = [
   { number: 2, label: "Details" },
   { number: 3, label: "Eligibility" },
   { number: 4, label: "Coverage" },
-  { number: 5, label: "Contact" },
-  { number: 6, label: "Quote" },
-  { number: 7, label: "Confirm" },
+  { number: 5, label: "Quote" },
+  { number: 6, label: "Confirm" },
 ];
 
 interface ProgressBarProps {
   currentStep: number;
 }
 
+function getDisplayStep(currentStep: number) {
+  if (currentStep <= 4) return currentStep;
+  if (currentStep <= 6) return 5;
+  return 6;
+}
+
 export function ProgressBar({ currentStep }: ProgressBarProps) {
+  const displayStep = getDisplayStep(currentStep);
+
   return (
-    <div className="flex items-center justify-between w-full max-w-lg mx-auto mb-8">
+    <div className="flex items-center justify-center w-full max-w-lg mx-auto mb-8 gap-0">
       {steps.map((step, i) => (
         <div key={step.number} className="flex items-center">
           <div className="flex flex-col items-center">
             <div
               className={cn(
                 "w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300",
-                currentStep > step.number
+                displayStep > step.number
                   ? "bg-primary text-primary-foreground"
-                  : currentStep === step.number
+                  : displayStep === step.number
                   ? "bg-primary text-primary-foreground shadow-glow"
                   : "bg-muted text-muted-foreground"
               )}
             >
-              {currentStep > step.number ? (
+              {displayStep > step.number ? (
                 <Check className="w-4 h-4" />
               ) : (
                 step.number
@@ -40,7 +47,7 @@ export function ProgressBar({ currentStep }: ProgressBarProps) {
             <span
               className={cn(
                 "text-xs mt-1.5 font-medium hidden sm:block",
-                currentStep >= step.number
+                displayStep >= step.number
                   ? "text-foreground"
                   : "text-muted-foreground"
               )}
@@ -52,7 +59,7 @@ export function ProgressBar({ currentStep }: ProgressBarProps) {
             <div
               className={cn(
                 "h-0.5 w-8 sm:w-12 mx-1 sm:mx-2 transition-colors duration-300",
-                currentStep > step.number ? "bg-primary" : "bg-muted"
+                displayStep > step.number ? "bg-primary" : "bg-muted"
               )}
             />
           )}
