@@ -24,12 +24,22 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
       if (!data.session) { navigate("/admin/login"); return; }
+      const { data: isAdmin, error } = await supabase.rpc("has_role", {
+        _user_id: data.session.user.id,
+        _role: "admin",
+      });
+      if (error || !isAdmin) {
+        await supabase.auth.signOut();
+        navigate("/admin/login");
+        return;
+      }
       setUser(data.session.user);
       loadStats();
       setLoading(false);
-    });
+    })();
   }, []);
 
   async function loadStats() {

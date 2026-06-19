@@ -10,6 +10,23 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require a shared secret so only the scheduler can invoke this endpoint.
+  const expectedSecret = Deno.env.get("SWEEP_SECRET");
+  if (!expectedSecret) {
+    console.error("[sweep] SWEEP_SECRET not configured");
+    return new Response(JSON.stringify({ ok: false, error: "Server not configured" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+  const providedSecret = req.headers.get("x-sweep-secret");
+  if (providedSecret !== expectedSecret) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 401,
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceKey);
