@@ -1,30 +1,24 @@
-## Update warranty pricing via CSV
+## Import May 26 pricing CSV (replace all)
 
-You already have a working CSV importer for the pricing matrix — no code or schema changes are needed. Here's the path to update it.
+One-time data refresh — no schema or app code changes.
 
-### Steps
-1. Sign in at `/admin/login` as an admin user.
-2. In the admin dashboard, open the **Pricing CSV Import** section.
-3. Upload your new pricing CSV. The parser unpivots it into the `coverage_pricing` table (one row per plan × vehicle class × years × mileage × deductible).
-4. The import replaces the active pricing set; the quote wizard picks up the new prices immediately.
+### Transformations applied during parse
+- Rename plan `PremuimCARE` → `PremiumCARE` (typo fix, maps to existing plan id).
+- For `PremiumCARE PLUS!`, keep only the `$0 Deductible` rows; drop `Disappearing`, `$50`, `$200`.
+- For all other plans, keep all 5 deductible options as present in the CSV.
+- Auto-create the three new plans not yet in DB: `ExtraCARE`, `BaseCARE`, `PowertrainCARE`.
 
-### Required CSV format
-Header row, then one row per `Plan Type` + term + mileage:
+### Execution
+1. Generate the SQL locally from `Pricing_May26 - Price.csv` using the existing `parsePricingCSV` logic (Node script, no project files changed).
+2. Run a single migration that:
+   - `INSERT` the three missing plans (idempotent via `ON CONFLICT (name) DO NOTHING`).
+   - `DELETE FROM coverage_pricing` (full wipe).
+   - Bulk `INSERT` all parsed rows with `plan_id` resolved from `plans.name`.
+3. Verify with a count query and a couple of spot checks (PremiumCARE PLUS! Category A 4yr/80k = $1,148; PowertrainCARE Category H 8yr/200k = $6,165).
 
-```text
-Plan Type, Term, Distance Coverage, Category A, Category B, ... Category H, Rental Plus!, $0 Deductible, Disappearing Deductible, $50 Deductible, $200 Deductible
-Powertrain, 4 Year Plan, 80000, 1295, 1395, ..., 1895, 150, 0, 75, -50, -150
-```
+### Expected scope
+~136 CSV data rows → roughly:
+- PremiumCARE PLUS!: 13 rows × 8 categories × 1 deductible = 104
+- PremiumCARE / ExtraCARE / BaseCARE / PowertrainCARE: remaining rows × 8 categories × 5 deductibles ≈ 4,900
 
-Notes:
-- `Category A`–`Category H` are vehicle classes; each cell is the base price.
-- Deductible columns hold the cost adjustment (added to the base price) for that deductible option. Leave blank to skip that combination.
-- `$` and `,` in numbers are stripped automatically.
-- `Term` parses the first integer (e.g. "4 Year Plan" → 4 years).
-
-### What I need from you
-Upload (or paste) the new pricing CSV. Tell me if you want me to:
-- (a) just confirm the format and let you upload it yourself in `/admin`, or
-- (b) parse and insert the rows for you directly via a data migration.
-
-No file or database changes are made until you approve.
+You'll review the migration before it runs.
