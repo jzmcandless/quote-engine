@@ -30,11 +30,13 @@ class QuoteWizardElement extends HTMLElement {
     const container = document.createElement("div");
     shadow.appendChild(container);
 
+    const showHeader = !this.hasAttribute("hide-header");
+
     this.root = createRoot(container);
     this.root.render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-          <QuoteWizard />
+          <QuoteWizard showHeader={showHeader} />
           <Toaster />
         </QueryClientProvider>
       </React.StrictMode>

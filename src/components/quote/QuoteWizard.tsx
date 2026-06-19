@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { initSession, patchSession, heartbeat, clearSessionId } from "@/lib/quoteSession";
 
-export function QuoteWizard() {
+export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}) {
   const [state, setState] = useState<QuoteState>(initialQuoteState);
 
   useEffect(() => {
@@ -55,13 +55,15 @@ export function QuoteWizard() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start px-4 py-8 sm:py-12">
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <ShieldCheck className="w-7 h-7 text-primary" />
-          <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground">Extended Warranty Quote</h1>
+      {showHeader && (
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <ShieldCheck className="w-7 h-7 text-primary" />
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground">Extended Warranty Quote</h1>
+          </div>
+          <p className="text-muted-foreground text-sm sm:text-base">Get instant coverage pricing for your vehicle</p>
         </div>
-        <p className="text-muted-foreground text-sm sm:text-base">Get instant coverage pricing for your vehicle</p>
-      </div>
+      )}
 
       <ProgressBar currentStep={state.step} />
 
