@@ -1,41 +1,41 @@
-# Add Contact Info Step Before Quote
+# Staff Email Notifications
 
-Insert a new step between **Coverage** and **Quote** that collects the customer's first name, last name, phone, and email. The same values are then pre-filled into the Customer Information section on the Confirm page so the user doesn't re-enter them.
+Send staff emails for three quote-flow events, with admin-managed recipient list, using sender domain `notifications.larkspurcreative.ca`.
 
-## New flow
+## 1. Sender domain setup (prerequisite)
 
-```
-1 Vehicle → 2 Details → 3 Eligibility → 4 Coverage → 5 Contact → 6 Quote → 7 Confirm
-```
+The subdomain `notifications.larkspurcreative.ca` isn't configured yet. First step is the email setup dialog, where you'll add it and we'll give you NS records to paste at your DNS provider. Scaffolding and code can continue immediately after the domain is added — DNS verification can finish in the background (up to ~72h, usually much faster).
 
-## Changes
+## 2. Email infrastructure & template
 
-**`src/types/quote.ts`**
-- Add `ContactInfo { firstName, lastName, phone, email }` interface.
-- Add `contact: ContactInfo` to `QuoteState` and `initialQuoteState` (empty strings).
+- Run email infrastructure setup (queue, send log, suppression, cron worker).
+- Scaffold the transactional email sender (`send-transactional-email` edge function + shared templates folder).
+- Create one branded React Email template `staff-notification.tsx` with a `variant` prop:
+  - `custom_quote` — ineligible vehicle, customer requested a custom quote
+  - `contact_captured` — customer submitted contact info to view price
+  - `quote_confirmed` — customer confirmed the quote
+- Template renders customer info, vehicle summary, coverage + price (where applicable), session ID, and a link to the admin submission.
 
-**`src/components/quote/StepContact.tsx`** (new)
-- Form with 4 required inputs (first name, last name, phone, email).
-- Client-side zod validation: trimmed, length limits, valid email, phone format.
-- Continue button disabled until valid; Back returns to Coverage.
+## 3. Fan-out edge function: `notify-staff`
 
-**`src/components/quote/QuoteWizard.tsx`**
-- Renumber: Quote becomes step 6, Confirm becomes step 7. Insert `StepContact` at step 5.
-- Wire contact state and `patchSession({ first_name, last_name, phone, email })` so the contact info is saved to the session as soon as it's entered (admin dashboard sees it earlier).
-- Update back/next handlers for renumbered steps.
+- Reads active rows from existing `notification_recipients` table.
+- For each recipient, invokes `send-transactional-email` once with a stable `idempotencyKey` of `staff-{event}-{sessionId}-{recipientEmail}` (per platform rule: one send per recipient).
+- Zod-validated input: `event`, `sessionId`, plus event-specific payload.
 
-**`src/components/quote/ProgressBar.tsx`**
-- Insert `{ number: 5, label: "Contact" }`, shift Quote→6, Confirm→7.
+## 4. Wire triggers (non-blocking, client-side invokes)
 
-**`src/components/quote/StepConfirm.tsx`**
-- Accept `contact: ContactInfo` prop.
-- Initialize the local form's `firstName`, `lastName`, `phone`, `email` from `contact` (still editable in case user wants to correct).
-- Keep existing address / province / VIN fields as-is.
+- `StepEligibility.tsx` — on custom-quote submit (ineligible path) → `event: "custom_quote"`
+- `StepContact.tsx` — on successful contact submit → `event: "contact_captured"`
+- `StepConfirm.tsx` — on confirm submit (after insert) → `event: "quote_confirmed"`
 
-**`src/components/quote/StepQuote.tsx`**
-- No data changes; only the `onBack` target changes (handled in wizard) to return to Contact (step 5) instead of Coverage.
+Failures are swallowed with a console log so the wizard never breaks if email is down.
 
-## Notes
+## 5. Admin
 
-- No DB migration needed — `quote_sessions` already stores `first_name`, `last_name`, `phone`, `email`, and `current_step`.
-- Contact data is captured before the price is shown, so abandoned-session sweeps and admin views get customer contact info even if the user drops off at the Quote step.
+Existing `/admin` → Notification Recipients UI already supports add/edit/toggle-active for multiple emails — no changes needed.
+
+## Technical notes
+
+- Sender: `notifications@notifications.larkspurcreative.ca`; From display can use root `larkspurcreative.ca`.
+- Recipients table already has RLS; `notify-staff` uses service role to read it.
+- No customer-facing emails in this change — staff only.
