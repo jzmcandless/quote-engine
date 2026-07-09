@@ -142,26 +142,10 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
 
       <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium mb-1.5 block">Year</Label>
-          <Select
-            value={vehicle.year?.toString() ?? ""}
-            onValueChange={(v) => onChange({ year: Number(v), make: "", model: "", drivetrain: "", fuelType: "" })}
-          >
-            <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
           <Label className="text-sm font-medium mb-1.5 block">Make</Label>
           <Select
             value={vehicle.make}
             onValueChange={(v) => onChange({ ...vehicle, make: v, model: "", drivetrain: "", fuelType: "" })}
-            disabled={!vehicle.year}
           >
             <SelectTrigger><SelectValue placeholder="Select make" /></SelectTrigger>
             <SelectContent>
@@ -183,6 +167,21 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
             <SelectContent>
               {models.map((m) => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium mb-1.5 block">Year</Label>
+          <Select
+            value={vehicle.year?.toString() ?? ""}
+            onValueChange={(v) => onChange({ ...vehicle, year: Number(v) })}
+          >
+            <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
