@@ -20,6 +20,22 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
   const [drivetrains, setDrivetrains] = useState<string[]>([]);
   const [fuelTypes, setFuelTypes] = useState<string[]>([]);
 
+  // Parse URL path for make/model hints (e.g. /lincoln/continental)
+  const [makeHint, setMakeHint] = useState<string | null>(null);
+  const [modelHint, setModelHint] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const segs = window.location.pathname.split("/").filter(Boolean);
+      if (segs.length >= 2) {
+        const norm = (s: string) => decodeURIComponent(s).replace(/[-_]+/g, " ").trim();
+        setMakeHint(norm(segs[segs.length - 2]));
+        setModelHint(norm(segs[segs.length - 1]));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Load all active makes on mount
   useEffect(() => {
     supabase
@@ -28,9 +44,19 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
       .eq("active", true)
       .order("make")
       .then(({ data }) => {
-        if (data) setMakes([...new Set(data.map((d) => d.make))]);
+        if (!data) return;
+        const list = [...new Set(data.map((d) => d.make))];
+        setMakes(list);
+        if (!vehicle.make && makeHint) {
+          const match = list.find((m) => m.toLowerCase() === makeHint.toLowerCase());
+          if (match) {
+            onChange({ ...vehicle, make: match });
+            setMakeHint(null);
+          }
+        }
       });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [makeHint]);
 
   // Load models when make changes
   useEffect(() => {
@@ -42,9 +68,19 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
       .eq("active", true)
       .order("model")
       .then(({ data }) => {
-        if (data) setModels([...new Set(data.map((d) => d.model))]);
+        if (!data) return;
+        const list = [...new Set(data.map((d) => d.model))];
+        setModels(list);
+        if (!vehicle.model && modelHint) {
+          const match = list.find((m) => m.toLowerCase() === modelHint.toLowerCase());
+          if (match) {
+            onChange({ ...vehicle, model: match, drivetrain: "", fuelType: "" });
+            setModelHint(null);
+          }
+        }
       });
-  }, [vehicle.make]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicle.make, modelHint]);
 
   // Load drivetrains when model changes
   useEffect(() => {
@@ -106,26 +142,10 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
 
       <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium mb-1.5 block">Year</Label>
-          <Select
-            value={vehicle.year?.toString() ?? ""}
-            onValueChange={(v) => onChange({ year: Number(v), make: "", model: "", drivetrain: "", fuelType: "" })}
-          >
-            <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
           <Label className="text-sm font-medium mb-1.5 block">Make</Label>
           <Select
             value={vehicle.make}
             onValueChange={(v) => onChange({ ...vehicle, make: v, model: "", drivetrain: "", fuelType: "" })}
-            disabled={!vehicle.year}
           >
             <SelectTrigger><SelectValue placeholder="Select make" /></SelectTrigger>
             <SelectContent>
@@ -147,6 +167,21 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
             <SelectContent>
               {models.map((m) => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium mb-1.5 block">Year</Label>
+          <Select
+            value={vehicle.year?.toString() ?? ""}
+            onValueChange={(v) => onChange({ ...vehicle, year: Number(v) })}
+          >
+            <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
