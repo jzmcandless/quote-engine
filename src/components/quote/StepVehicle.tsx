@@ -58,12 +58,14 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         const list = [...new Set(data.map((d) => d.make))];
         setMakes(list);
         if (!vehicle.make && makeHint) {
-          const match = list.find((m) => m.toLowerCase() === makeHint.toLowerCase());
+          const target = slug(makeHint);
+          const match = list.find((m) => slug(m) === target);
           if (match) {
             onChange({ ...vehicle, make: match });
             setMakeHint(null);
           }
         }
+
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [makeHint]);
