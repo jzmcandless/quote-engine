@@ -4,6 +4,13 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+    "process.env": "{}",
+    "process.platform": JSON.stringify("browser"),
+    "process.version": JSON.stringify(""),
+    process: "({ env: {}, platform: 'browser', version: '' })",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
