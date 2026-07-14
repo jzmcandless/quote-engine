@@ -84,12 +84,14 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         const list = [...new Set(data.map((d) => d.model))];
         setModels(list);
         if (!vehicle.model && modelHint) {
-          const match = list.find((m) => m.toLowerCase() === modelHint.toLowerCase());
+          const target = slug(modelHint);
+          const match = list.find((m) => slug(m) === target);
           if (match) {
             onChange({ ...vehicle, model: match, drivetrain: "", fuelType: "" });
             setModelHint(null);
           }
         }
+
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicle.make, modelHint]);
