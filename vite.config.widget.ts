@@ -1,8 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import tailwindcss from "tailwindcss";
-import autoprefixer from "autoprefixer";
 
 export default defineConfig({
   plugins: [react()],
@@ -20,12 +18,7 @@ export default defineConfig({
     ],
   },
   css: {
-    postcss: {
-      plugins: [
-        tailwindcss({ config: path.resolve(__dirname, "tailwind.config.widget.ts") }),
-        autoprefixer(),
-      ],
-    },
+    postcss: path.resolve(__dirname, "postcss.config.widget.cjs"),
   },
   build: {
     outDir: "dist-widget",
@@ -39,8 +32,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         inlineDynamicImports: true,
-        // Prevent Vite from emitting a separate style.css — widget.css
-        // is imported with ?inline and gets embedded in the JS bundle.
         assetFileNames: "[name][extname]",
       },
     },
