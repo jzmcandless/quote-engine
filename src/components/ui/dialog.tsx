@@ -3,12 +3,16 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { usePortalContainer } from "@/lib/shadow-root-context";
 
 const Dialog = DialogPrimitive.Root;
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
-const DialogPortal = DialogPrimitive.Portal;
+const DialogPortal = (props: React.ComponentProps<typeof DialogPrimitive.Portal>) => {
+  const container = usePortalContainer();
+  return <DialogPrimitive.Portal container={container} {...props} />;
+};
 
 const DialogClose = DialogPrimitive.Close;
 
