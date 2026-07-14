@@ -1,32 +1,64 @@
-
 ## Goal
-1. Reorder Step 1 fields so **Make → Model → Year** (year moves to third position).
-2. Prefill **Make** and **Model** from the URL path (e.g. `/lincoln/continental` → Lincoln + Continental), so the user only has to pick the Year on that page.
 
-## Why this order works
-Make and Model don't depend on Year in the current data flow — the DB queries for models/drivetrains/fuel types already filter only by make/model. Year is only used later for eligibility and pricing. Moving Year to third has no functional impact on downstream steps.
+Make the standalone widget (`dist-widget/widget.js`) render with the correct Tailwind/theme styling when embedded via Shadow DOM on an external site (e.g. Webflow), not only in the Lovable preview.
 
-## URL parsing
-- Read `window.location.pathname`, take the **last two non-empty segments**, URL-decode them, and replace `-`/`_` with spaces.
-- Match case-insensitively against the makes/models loaded from the database. Casing (`lincoln`, `Lincoln`), hyphens (`grand-marquis` → `Grand Marquis`), and encoded chars all resolve.
-- If a segment doesn't match, the field stays empty and the user picks manually — nothing breaks on unrelated URLs like `/` or `/admin`.
-- Works for the standalone site and the embedded `<quote-wizard>` web component (reads the host page's URL).
+## Root causes
+
+1. `src/index.css` defines theme variables only under `:root` and `.dark`. Inside a Shadow DOM, `:root` selectors don't cascade into the shadow tree, so `hsl(var(--primary))` resolves to nothing and Tailwind color utilities appear unstyled.
+2. Tailwind's Preflight targets `html`/`body`, which don't exist inside the shadow root, so base resets are effectively lost.
+3. `src/components/ui/select|popover|dropdown-menu|dialog` use Radix `Portal`, which renders into `document.body` — outside the shadow root — so those popovers lose all styling. Same for the Sonner `<Toaster />`.
+4. The current build already imports `@/index.css?inline`, but Tailwind's `content` glob is fine; the real gap is scoping (item 1) and portal targeting (item 3), plus verifying the built bundle actually contains the utility CSS.
 
 ## Changes
 
-**`src/components/quote/StepVehicle.tsx`**
-- Reorder the JSX so the Selects render in this order: Make, Model, Year. (Drivetrain/Fuel Type stay after, as today.)
-- Remove the `disabled={!vehicle.year}` on Make and the year-reset behavior on make change; Make is now always enabled. Year Select stays always enabled.
-- Keep the existing chained resets (changing Make clears Model/drivetrain/fuel; changing Model clears drivetrain/fuel). Changing Year resets nothing else.
-- Add URL prefill: on mount, parse the last two path segments into `{makeHint, modelHint}`.
-  - In the "load makes" effect, after `setMakes(...)`, if `vehicle.make` is empty and `makeHint` matches an entry (case-insensitive), call `onChange({ ...vehicle, make: matched })`.
-  - In the "load models" effect, after `setModels(...)`, if `vehicle.model` is empty and `modelHint` matches, call `onChange({ ...vehicle, model: matched })`.
-  - Clear each hint after it is applied so later manual edits aren't overridden.
-- `canProceed` unchanged (still requires year + make + model + drivetrain + fuel type).
+### 1. New widget stylesheet: `src/widget.css`
 
-**No changes** to `QuoteWizard.tsx`, `widget.tsx`, `Index.tsx`, `types/quote.ts`, or any downstream step — the `VehicleSelection` shape and required fields are the same.
+- Same `@tailwind base/components/utilities` directives.
+- Move the token block from `:root` → `:host, :root` so variables are defined at the shadow root.
+- Move `.dark` overrides → `:host(.dark), .dark`.
+- Replace the `body { @apply bg-background text-foreground }` base rule with `:host { @apply bg-background text-foreground; font-family: var(--font-body); display:block; }` so the shadow root itself carries theme background/typography.
+- Keep the `* { @apply border-border }` and utility layers.
+
+### 2. `src/widget.tsx`
+
+- Import `@/widget.css?inline` instead of `@/index.css?inline`.
+- After creating the shadow root, create a `<div data-portal-root>` inside the shadow and expose it via a React context (`ShadowRootContext`) so Radix portals + Sonner render inside the shadow tree.
+- Pass `container={portalRoot}` on the Radix `Portal` wrappers via a new prop on our shadcn wrappers (see item 3).
+- Configure `<Toaster />` in the widget tree to mount to the same in-shadow container (Sonner accepts a `toastOptions`/custom container via portalling into a wrapper element — render a `<div>` inside shadow and mount Sonner's `<Toaster />` there; if Sonner can't target a container, wrap it in a component that uses `createPortal(<Toaster/>, portalRoot)`).
+
+### 3. Minimal shadcn wrapper updates (widget-only impact, no visual change in main app)
+
+- `src/components/ui/select.tsx`, `popover.tsx`, `dropdown-menu.tsx`, `dialog.tsx`: read the portal container from a new `ShadowRootContext` (default `undefined` = current behavior) and pass it as `container` on the Radix `Portal`. In the main app the context is not provided, so behavior is unchanged.
+
+### 4. `vite.config.widget.ts`
+
+- Keep `cssCodeSplit: false` and IIFE output.
+- Add an explicit `css: { postcss: { plugins: [tailwindcss(tailwindWidgetConfig), autoprefixer()] } }` block so the widget build always uses a Tailwind config whose `content` explicitly lists the widget entry + all `src/**/*.{ts,tsx}` (independent of any future changes to the main app config). This guarantees every utility used by the widget is emitted.
+- Confirm `?inline` import path so CSS ends up embedded inside `widget.js` and no separate `style.css` is emitted. Result stays a single file: `dist-widget/widget.js`.
+
+### 5. `tailwind.config.widget.ts` (new)
+
+- Re-exports the existing theme from `tailwind.config.ts` but sets `content: ['./src/**/*.{ts,tsx}', './src/widget.tsx']` and `corePlugins: { preflight: true }`. Same tokens/colors as the main app.
+
+## Verification
+
+- `npm run build:widget` (existing script that runs `vite build --config vite.config.widget.ts`).
+- Confirm `dist-widget/` contains only `widget.js` (plus static assets already there) and that the JS bundle string-contains `--primary:` and `.bg-primary` (proof CSS + tokens are inlined).
+- Write `dist-widget/test.html`:
+  ```html
+  <!doctype html><html><body>
+    <quote-wizard></quote-wizard>
+    <script src="./widget.js"></script>
+  </body></html>
+  ```
+- Serve `dist-widget/` with a static server and load `test.html` in headless Chromium via Playwright. Screenshot at 1280×1800 and assert:
+  - Primary button has computed `background-color` in the teal range (not transparent/black).
+  - Card has non-transparent background and border.
+  - Opening the Year `<Select>` shows a styled dropdown (portal is inside shadow, tokens resolve).
+- Repeat with `hide-header` attribute to confirm the header-hidden embed path also styles correctly.
 
 ## Out of scope
-- Year prefill (not part of the URL scheme).
-- Redirects, SEO metadata, or route registration based on `/{make}/{model}` — the app still serves the wizard at any path; parsing is best-effort.
-- Fuzzy matching beyond case + hyphen/underscore normalization.
+
+- No changes to the main app's `src/index.css`, routes, or business logic.
+- No new UI, no font swap, no dark-mode toggle inside the widget.
+- Radix portal container plumbing is added only to the four wrappers actually used by the wizard steps; other shadcn primitives are left unchanged.
