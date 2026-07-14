@@ -20,21 +20,31 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
   const [drivetrains, setDrivetrains] = useState<string[]>([]);
   const [fuelTypes, setFuelTypes] = useState<string[]>([]);
 
-  // Parse URL path for make/model hints (e.g. /lincoln/continental)
+  // Parse URL path for make/model hints (e.g. /lincoln/continental, /ford/c-max)
   const [makeHint, setMakeHint] = useState<string | null>(null);
   const [modelHint, setModelHint] = useState<string | null>(null);
   useEffect(() => {
     try {
       const segs = window.location.pathname.split("/").filter(Boolean);
       if (segs.length >= 2) {
-        const norm = (s: string) => decodeURIComponent(s).replace(/[-_]+/g, " ").trim();
-        setMakeHint(norm(segs[segs.length - 2]));
-        setModelHint(norm(segs[segs.length - 1]));
+        setMakeHint(segs[segs.length - 2]);
+        setModelHint(segs[segs.length - 1]);
       }
     } catch {
       // ignore
     }
   }, []);
+
+  // Compare by stripping every non-alphanumeric character so URL segments like
+  // "c-max" match "C-Max" and "transit-van-wagon" matches "Transit Van/Wagon".
+  const slug = (s: string) => {
+    try {
+      return decodeURIComponent(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    } catch {
+      return s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    }
+  };
+
 
   // Load all active makes on mount
   useEffect(() => {
@@ -48,12 +58,14 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         const list = [...new Set(data.map((d) => d.make))];
         setMakes(list);
         if (!vehicle.make && makeHint) {
-          const match = list.find((m) => m.toLowerCase() === makeHint.toLowerCase());
+          const target = slug(makeHint);
+          const match = list.find((m) => slug(m) === target);
           if (match) {
             onChange({ ...vehicle, make: match });
             setMakeHint(null);
           }
         }
+
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [makeHint]);
@@ -72,12 +84,14 @@ export function StepVehicle({ vehicle, onChange, onNext }: StepVehicleProps) {
         const list = [...new Set(data.map((d) => d.model))];
         setModels(list);
         if (!vehicle.model && modelHint) {
-          const match = list.find((m) => m.toLowerCase() === modelHint.toLowerCase());
+          const target = slug(modelHint);
+          const match = list.find((m) => slug(m) === target);
           if (match) {
             onChange({ ...vehicle, model: match, drivetrain: "", fuelType: "" });
             setModelHint(null);
           }
         }
+
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicle.make, modelHint]);
