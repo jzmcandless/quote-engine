@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import tailwindWidgetConfig from "./tailwind.config.widget";
 
 export default defineConfig({
   plugins: [react()],
@@ -23,7 +22,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        tailwindcss(tailwindWidgetConfig as Parameters<typeof tailwindcss>[0]),
+        tailwindcss({ config: path.resolve(__dirname, "tailwind.config.widget.ts") }),
         autoprefixer(),
       ],
     },
