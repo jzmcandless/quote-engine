@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { VehicleSelection, AdditionalDetails } from "@/types/quote";
 import { ShieldCheck, ShieldX, ChevronLeft, ChevronRight, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { patchSession, markCompleted } from "@/lib/quoteSession";
+import { patchSession, getSessionCredentials, initSession } from "@/lib/quoteSession";
 
 interface StepEligibilityProps {
   vehicle: VehicleSelection;
@@ -32,92 +32,60 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
 
   async function checkEligibility() {
     setChecking(true);
-
-    // Client-side eligibility checks
-    if (details.mileage && Number(details.mileage) > 36000) {
-      onResult(false, "Vehicles with over 36,000 km are not eligible for coverage.", null);
+    await initSession();
+    const creds = getSessionCredentials();
+    if (!creds) {
       setChecking(false);
+      onResult(false, "Session error. Please refresh and try again.", null);
       return;
     }
-    if (details.purchase_timeframe === "More than 36 months") {
-      onResult(false, "Vehicles purchased more than 36 months ago are not eligible for coverage.", null);
+    try {
+      const { data, error } = await supabase.functions.invoke("quote-compute", {
+        body: {
+          session_id: creds.session_id,
+          write_token: creds.write_token,
+          vehicle,
+          additional_details: details,
+        },
+      });
+      if (error || !data) throw error ?? new Error("compute failed");
+      onResult(!!data.eligible, data.ineligibleMessage || "", data.vehicleClass ?? null);
+    } catch (err) {
+      console.warn("[eligibility] failed", err);
+      onResult(false, "Unable to check eligibility right now. Please try again.", null);
+    } finally {
       setChecking(false);
-      return;
     }
-
-    // Get vehicle class
-    const { data: vehicleData } = await supabase
-      .from("vehicles")
-      .select("vehicle_class")
-      .eq("year", vehicle.year!)
-      .eq("make", vehicle.make)
-      .eq("model", vehicle.model)
-      .eq("drivetrain", vehicle.drivetrain)
-      .eq("fuel_type", vehicle.fuelType)
-      .single();
-
-    const vehicleClass = vehicleData?.vehicle_class ?? null;
-
-    // Check eligibility rules
-    const { data: rules } = await supabase
-      .from("eligibility_rules")
-      .select("*")
-      .eq("active", true);
-
-    if (!rules || rules.length === 0) {
-      onResult(true, "", vehicleClass);
-      setChecking(false);
-      return;
-    }
-
-    for (const rule of rules) {
-      const makeMatch = !rule.make || rule.make === vehicle.make;
-      const modelMatch = !rule.model || rule.model === vehicle.model;
-      const yearMin = !rule.min_year || vehicle.year! >= rule.min_year;
-      const yearMax = !rule.max_year || vehicle.year! <= rule.max_year;
-      const mileageOk = !rule.max_mileage || !details.mileage || Number(details.mileage) <= rule.max_mileage;
-
-      if (makeMatch && modelMatch && yearMin && yearMax && mileageOk) {
-        if (!rule.eligible) {
-          onResult(false, rule.ineligible_message || "This vehicle is not eligible for coverage.", vehicleClass);
-          setChecking(false);
-          return;
-        }
-      }
-    }
-
-    onResult(true, "", vehicleClass);
-    setChecking(false);
   }
 
   async function handleContactSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-
-    const { error } = await supabase.from("custom_quote_requests").insert({
-      first_name: contactForm.firstName.trim(),
-      last_name: contactForm.lastName.trim(),
-      email: contactForm.email.trim(),
-      phone: contactForm.phone.trim(),
-      vin: contactForm.vin.trim() || null,
-      vehicle_year: vehicle.year,
-      vehicle_make: vehicle.make,
-      vehicle_model: vehicle.model,
+    const creds = getSessionCredentials();
+    if (!creds) {
+      setSubmitting(false);
+      toast({ title: "Session error", description: "Please refresh and try again.", variant: "destructive" });
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("quote-submit", {
+      body: {
+        session_id: creds.session_id,
+        write_token: creds.write_token,
+        kind: "custom_request",
+        contact: {
+          first_name: contactForm.firstName.trim(),
+          last_name: contactForm.lastName.trim(),
+          email: contactForm.email.trim(),
+          phone: contactForm.phone.trim(),
+          vin: contactForm.vin.trim() || null,
+        },
+      },
     });
-
     setSubmitting(false);
-
-    if (error) {
+    if (error || !data?.ok) {
       toast({ title: "Something went wrong", description: "Please try again later.", variant: "destructive" });
       return;
     }
-
-    await markCompleted("completed_custom_request", {
-      first_name: contactForm.firstName.trim(),
-      last_name: contactForm.lastName.trim(),
-      email: contactForm.email.trim(),
-      phone: contactForm.phone.trim(),
-    });
     setSubmitted(true);
   }
 
