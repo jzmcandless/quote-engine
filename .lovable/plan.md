@@ -1,97 +1,102 @@
 
-# Security Hardening Plan
+# Strict Server-Side Validation
 
-Two focused changes: (1) move pricing/eligibility to the server, and (2) replace the publicly writable `upsert_quote_session` RPC with a session-id + write-token model that restricts what anonymous users may write.
+Harden the three anonymous entry points — `patch_quote_session` RPC, `quote-compute` edge function, and `quote-submit` edge function — with explicit schema validation. Reject anything that doesn't match. Return only generic user-safe error messages.
 
-Existing UX, admin panel, styling, and data are preserved. No table drops; only additive schema.
+## 1. Shared validation module (edge functions)
 
-## 1. Server-authoritative pricing & eligibility
+Create `supabase/functions/_shared/validate.ts` with zod schemas + helpers:
 
-### New edge function: `quote-compute`
-`supabase/functions/quote-compute/index.ts`, deployed with `verify_jwt = false`.
+- **Body size guard**: cap `Content-Length` at 8 KB; read as text, `JSON.parse` inside try/catch.
+- **Generic error helper**: `bad(status, code)` returning `{ error: <short slug> }`. Never surface Postgres errors or exception messages; log them server-side only.
+- **Regex constants**: email (RFC-lite), phone digits/spaces/+/-/(), VIN alnum 11–17, session id uuid, write token base64 44 chars, plan id uuid, province from fixed list, deductible from fixed list.
+- **Length caps**: name 100, email 255, phone 20, vin 17, street 200, city 100, message-derived fields bounded by their sources, all free-text fields ≤500.
+- **Numeric caps**: year 1980–2100, mileage 0–1_000_000, yearsCovered 1–15, mileageCovered 1_000–500_000, price 0–1_000_000.
+- **JSON depth / key count**: `assertShape(obj, {maxDepth:4, maxKeys:40, maxStringLen:1000})` walker used before zod parse.
+- **Additional details allowlist**: only known keys — `mileage`, `purchase_timeframe`, `commercial_use`, `has_snowplow` — with per-key enums (`purchase_timeframe` ∈ {`Less than 12 months`, `Between 12 and 36 months`, `More than 36 months`}, yes/no fields ∈ {`Yes`,`No`}). Silently drop unknown keys, reject invalid types.
+- **Reference validation helper**: `assertPlanActive(admin, planId)`, `assertVehicleExists(admin, {year,make,model,drivetrain,fuel_type})`, `assertCoveragePricingExists(...)`. Returns boolean; caller returns 422 with generic code on false.
 
-Request body (only raw inputs — never price, surcharges, eligibility, class, or status):
+## 2. `quote-compute` — explicit input schema
+
 ```
 {
-  session_id: string,
-  write_token: string,
-  vehicle: { year, make, model, drivetrain, fuelType },
-  additional_details: { mileage, purchase_timeframe, commercial_use, has_snowplow, ... },
-  coverage: { plan_id, years_covered, mileage_covered, deductible }
+  session_id: uuid,
+  write_token: base64 string 20–100 chars,
+  vehicle: {
+    year: int 1980–2100 | null,
+    make: string 1–80,
+    model: string 1–120,
+    drivetrain: string 0–40,
+    fuelType: string 0–40,
+  },
+  additional_details: {allowlisted keys only, values enums/ints},
+  coverage?: {
+    planId: uuid,
+    planName: string 1–120,
+    yearsCovered: int 1–15,
+    mileageCovered: int 1000–500000,
+    deductible: enum,
+  }
 }
 ```
+- Reject `Content-Length > 8192` up front.
+- Reject any extra top-level keys (zod `.strict()`).
+- If `coverage` present: verify `plan_id` exists in `plans WHERE active=true`, and vehicle row exists in `vehicles WHERE active=true`. Missing → 422 `{error:"invalid_selection"}`.
+- All other failures → 400 `{error:"invalid_request"}`, 401 `{error:"unauthorized"}`, 500 `{error:"server_error"}`.
+- All exceptions caught; log with `console.error` including request id, respond generically.
 
-Server logic (uses service role):
-1. Verify `session_id` + `write_token` via new `verify_quote_session_token(session_id, token_hash)` DB function (constant-time hash compare, SHA-256 of token).
-2. Reject if session `status` ∈ (`completed_purchase`, `completed_custom_request`, `completed_ineligible`, `abandoned`) or older than 24h.
-3. Look up `vehicles` row → `vehicle_class`.
-4. Evaluate `eligibility_rules` + hard rules (mileage > 36 000, purchase timeframe > 36 months). If ineligible, persist and return `{ eligible: false, message }`.
-5. Look up `coverage_pricing` row keyed by `(plan_id, vehicle_class, years_covered, mileage_covered, deductible, active=true)`. If missing → 422.
-6. Compute surcharges from `surcharges` table (timeframe, commercial, snowplow-by-mileage).
-7. Compute `final_price = price + deductible_cost + Σ surcharges`.
-8. Persist authoritative fields via privileged RPC `apply_quote_computation(...)`: `vehicle_class`, `is_eligible`, `ineligible_message`, `price`, `surcharges`, `coverage`, plus a new `computed_at`, `computed_hash` (hash of inputs) to detect tampering.
-9. Return the authoritative result to the client.
+## 3. `quote-submit` — explicit input schema
 
-### New edge function: `quote-submit`
-Server-side finalization (replaces client insert into `custom_quote_requests` and client-set `status = completed_*`):
-- Verifies session + token.
-- Re-runs the compute step (idempotent) and only then inserts into `custom_quote_requests` and sets `status = completed_purchase` / `completed_custom_request` / `completed_ineligible`.
-- Only trusts server-computed price/surcharges when writing the request message.
-
-### Frontend changes
-- `StepQuote.tsx`: remove direct `coverage_pricing` + `surcharges` queries; call `quote-compute`; render returned price/surcharges.
-- `StepEligibility.tsx`: remove client eligibility rule evaluation and vehicle-class lookup; call `quote-compute` (or a lightweight `quote-eligibility` sub-mode) to get `{ eligible, message, vehicleClass }`.
-- `StepConfirm.tsx`: replace direct `custom_quote_requests` insert + `markCompleted` with call to `quote-submit`.
-- `QuoteWizard.tsx` / `lib/quoteSession.ts`: stop sending `price`, `surcharges`, `vehicle_class`, `is_eligible`, `ineligible_message`, `status` in `patchSession` payloads.
-
-## 2. Hardened anonymous session model
-
-### Schema migration (additive, no data loss)
-```sql
-ALTER TABLE public.quote_sessions
-  ADD COLUMN write_token_hash bytea,      -- SHA-256(token)
-  ADD COLUMN token_created_at timestamptz,
-  ADD COLUMN computed_at timestamptz,
-  ADD COLUMN computed_input_hash text;
 ```
-Existing rows without a hash remain readable/updatable only by service role; the browser cannot mutate them anymore.
+{
+  session_id: uuid,
+  write_token: base64 string 20–100 chars,
+  kind: enum "purchase" | "custom_request",
+  contact: {
+    first_name: 1–100,
+    last_name: 1–100,
+    email: email 5–255,
+    phone: 7–20 chars matching phone regex,
+    vin?: 11–17 alnum | null,
+    street_address?: 0–200 | null,
+    city?: 0–100 | null,
+    province?: fixed 13-value enum | null,
+  }
+}
+```
+- Strict `.strict()` on both objects.
+- For `kind:"purchase"`: require session has `is_eligible=true` and `price` not null (already loaded from DB — no client price accepted).
+- Generic error codes only.
 
-### New RPCs (SECURITY DEFINER)
-- `create_quote_session(p_user_agent, p_referrer) RETURNS TABLE(session_id text, write_token text)`
-  - Server-generated `session_id` (`gen_random_uuid()`) and `write_token` (`encode(gen_random_bytes(32),'base64')`). Stores SHA-256 hash only. Returns raw token exactly once.
-- `patch_quote_session(p_session_id, p_write_token, p_patch jsonb)`
-  - Verifies token with `digest(...,'sha256')` + constant-time compare (`crypto_hash_sha256` via pgcrypto; compare with `= true` after `hmac`-style check).
-  - Blocks patch when `status` is any completed/`abandoned` value, or session is older than 24h.
-  - Applies **whitelist only**: `current_step`, `vehicle`, `additional_details`, `coverage` (identifiers only — `planId`, `yearsCovered`, `mileageCovered`, `deductible`, `planName`), `first_name`, `last_name`, `email`, `phone`, `user_agent`, `referrer`.
-  - Silently ignores any other keys (price, surcharges, vehicle_class, is_eligible, ineligible_message, status, created_at, updated_at, abandoned_notified_at, last_activity_at, internal notes).
-- `apply_quote_computation(p_session_id, ...)` — callable only by service role (revoke from anon/authenticated); used by edge functions.
-- Keep `upsert_quote_session` for backward compat but **revoke EXECUTE from anon & authenticated**; only service role may call it.
+## 4. RPC hardening: `patch_quote_session`
 
-### RLS
-- `quote_sessions` remains no-select for anon (already the case). Confirm no anon SELECT policy exists.
-- Grants: revoke direct table `INSERT/UPDATE` from anon; anon interacts only via the two RPCs above.
+Replace the current permissive body with explicit per-field validation in PL/pgSQL:
 
-### Frontend session lib (`src/lib/quoteSession.ts`)
-- On first load: call `create_quote_session`, store `{ session_id, write_token }` in `localStorage` (token treated as opaque bearer).
-- All patches route through `patch_quote_session(session_id, write_token, patch)`.
-- Heartbeat unchanged (empty patch).
-- `markCompleted` removed; completion happens only through `quote-submit`.
+- `current_step`: int 1–7.
+- `vehicle`: must be a JSON object with only keys {`year`,`make`,`model`,`drivetrain`,`fuelType`}, each ≤120 chars, year int 1980–2100 or null.
+- `additional_details`: object, at most 20 keys, each key ≤64 chars, each value ≤200 chars or int within bounds. Unknown keys allowed only inside a whitelist set; reject if any key contains non `[a-z0-9_]`.
+- `coverage`: keys already narrowed; add length + numeric bounds and reject invalid deductible.
+- Contact fields: length caps (`first_name`/`last_name` ≤100, `email` ≤255 and matches simple regex `^[^@\s]+@[^@\s]+\.[^@\s]+$`, `phone` ≤20 matching digits/`+`/`-`/space/`(`/`)`).
+- `user_agent` ≤500, `referrer` ≤500.
+- On any violation: `RAISE EXCEPTION 'invalid_input'` (single generic token, not a Postgres detail). Client library already surfaces only a generic toast.
 
-## 3. Compatibility & manual steps
+## 5. RPC hardening: `create_quote_session`
 
-- **Data migration:** existing in-flight sessions (rows without `write_token_hash`) can no longer be updated by the browser; they remain intact and admin-visible. New sessions start on next page load — no user-visible break.
-- **Edge functions:** auto-deployed. No manual Supabase steps.
-- **Secrets:** no new secrets required. `SUPABASE_SERVICE_ROLE_KEY` is already available to edge functions.
-- **Turnstile / GitHub / Cloudflare / hosting:** no changes required for this pass. (Turnstile bot-mitigation on `create_quote_session` can be added later if abuse appears.)
-- **Admin panel:** unchanged — admins still read `quote_sessions` via existing policies.
+- Cap `p_user_agent` to first 500 chars and `p_referrer` to first 500 chars before insert (no rejection — these are advisory).
 
-## 4. Technical file list
+## 6. Frontend impact
 
-- New: `supabase/functions/quote-compute/index.ts`, `supabase/functions/quote-submit/index.ts`
-- New migration: token columns + RPCs + revokes
-- Edited: `src/lib/quoteSession.ts`, `src/components/quote/QuoteWizard.tsx`, `StepEligibility.tsx`, `StepQuote.tsx`, `StepConfirm.tsx`, `src/types/quote.ts` (add token to session state; response type)
+- No UX changes. `patchSession` already restricts keys client-side.
+- `StepConfirm.tsx` already trims + length-limits inputs; keep as-is. Any user typing a bad email now gets a generic error toast instead of the previous silent server accept.
+- No new dependencies expected: `zod` is already in the app; edge functions use `npm:zod@3` via `npm:` specifier.
 
-## 5. Out of scope (called out, not changed)
+## 7. Deliverables
 
-- No changes to admin auth, roles, CSV import, email templates, or widget build.
-- `custom_quote_requests` insert policy: tightened to server-only via `quote-submit` (anon INSERT policy revoked in the same migration).
+- New file: `supabase/functions/_shared/validate.ts`.
+- Edited: `supabase/functions/quote-compute/index.ts`, `supabase/functions/quote-submit/index.ts` — wire in validation, replace all error responses with generic codes, wrap the handler in try/catch.
+- Migration: replace `patch_quote_session` body with strict validation; tighten `create_quote_session` for length-capped inputs. Keep signatures unchanged so the frontend doesn't move.
+
+## 8. Non-goals
+
+- No changes to admin, widget, UI, styling, or existing user data.
+- No rate-limiting in this pass (call it out to the user as a follow-up if abuse is observed).
