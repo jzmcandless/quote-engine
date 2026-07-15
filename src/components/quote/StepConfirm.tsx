@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharge, ContactInfo } from "@/types/quote";
-import { ChevronLeft, CreditCard, Loader2, CheckCircle } from "lucide-react";
+import { ChevronLeft, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { patchSession, markCompleted } from "@/lib/quoteSession";
@@ -187,30 +187,14 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
         </div>
       </div>
 
-      {/* Payment Details Placeholder */}
-      <div>
-        <h2 className="text-lg font-heading font-bold text-foreground mb-3">Payment Details</h2>
-        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
-            <CreditCard className="w-4 h-4" />
-            <span>Payment processing coming soon</span>
-          </div>
-          <Input placeholder="Card Number" disabled className="bg-muted/50" />
-          <div className="grid grid-cols-2 gap-3">
-            <Input placeholder="MM / YY" disabled className="bg-muted/50" />
-            <Input placeholder="CVV" disabled className="bg-muted/50" />
-          </div>
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onBack} size="lg">
           <ChevronLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <Button type="submit" size="lg" disabled={!requiredFilled || loading} className="flex-1">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CreditCard className="w-4 h-4 mr-1" />}
-          Complete Purchase
+          {loading && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+          Submit
         </Button>
       </div>
     </form>
