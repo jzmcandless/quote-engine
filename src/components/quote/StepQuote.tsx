@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { VehicleSelection, CoverageSelection, AdditionalDetails, AppliedSurcharge } from "@/types/quote";
 import { DollarSign, ChevronLeft, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { getSessionCredentials, initSession } from "@/lib/quoteSession";
 
 interface StepQuoteProps {
   vehicle: VehicleSelection;
@@ -27,62 +28,33 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, price, sur
 
   async function fetchPrice() {
     setLoading(true);
-    const query = supabase
-      .from("coverage_pricing")
-      .select("price, deductible_cost, rental_plus")
-      .eq("plan_id", coverage.planId)
-      .eq("years_covered", coverage.yearsCovered)
-      .eq("mileage_covered", coverage.mileageCovered)
-      .eq("deductible", coverage.deductible)
-      .eq("active", true);
-
-    if (vehicleClass) query.eq("vehicle_class", vehicleClass);
-
-    const { data } = await query.limit(1).single();
-
-    // Fetch surcharges for this plan
-    const { data: surchargeRows } = await supabase
-      .from("surcharges")
-      .select("surcharge_type, mileage_threshold, amount")
-      .eq("plan_id", coverage.planId)
-      .eq("active", true);
-
-    const applied: AppliedSurcharge[] = [];
-
-    if (surchargeRows) {
-      // Timeframe surcharge: mileage > 20000 OR purchase_timeframe is "Between 12 and 36 months"
-      const mileage = Number(details.mileage || 0);
-      const purchaseTimeframe = String(details.purchase_timeframe || "");
-      const timeframeApplies = mileage > 20000 || purchaseTimeframe === "Between 12 and 36 months";
-      
-      if (timeframeApplies) {
-        const row = surchargeRows.find((r: any) => r.surcharge_type === "timeframe");
-        if (row) applied.push({ type: "timeframe", label: "Timeframe/Mileage Surcharge", amount: Number(row.amount) });
+    await initSession();
+    const creds = getSessionCredentials();
+    if (!creds) { setLoading(false); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke("quote-compute", {
+        body: {
+          session_id: creds.session_id,
+          write_token: creds.write_token,
+          vehicle,
+          additional_details: details,
+          coverage: {
+            planId: coverage.planId,
+            planName: coverage.planName,
+            yearsCovered: coverage.yearsCovered,
+            mileageCovered: coverage.mileageCovered,
+            deductible: coverage.deductible,
+          },
+        },
+      });
+      if (!error && data && typeof data.price === "number") {
+        onPriceGenerated(data.price, (data.surcharges ?? []) as AppliedSurcharge[]);
       }
-
-      // Commercial surcharge
-      if (String(details.commercial_use) === "Yes") {
-        const row = surchargeRows.find((r: any) => r.surcharge_type === "commercial");
-        if (row) applied.push({ type: "commercial", label: "Commercial Vehicle Surcharge", amount: Number(row.amount) });
-      }
-
-      // Snowplow surcharge - match by mileage_covered
-      if (String(details.has_snowplow) === "Yes") {
-        const snowplowRow = surchargeRows.find(
-          (r: any) => r.surcharge_type === "snowplow" && r.mileage_threshold === coverage.mileageCovered
-        );
-        if (snowplowRow) {
-          applied.push({ type: "snowplow", label: `Snowplow Surcharge (${coverage.mileageCovered.toLocaleString()} km)`, amount: Number(snowplowRow.amount) });
-        }
-      }
+    } catch (err) {
+      console.warn("[quote] compute failed", err);
+    } finally {
+      setLoading(false);
     }
-
-    if (data) {
-      const basePrice = Number(data.price) + Number(data.deductible_cost || 0);
-      const surchargeTotal = applied.reduce((sum, s) => sum + s.amount, 0);
-      onPriceGenerated(basePrice + surchargeTotal, applied);
-    }
-    setLoading(false);
   }
 
   if (loading || price === null) {

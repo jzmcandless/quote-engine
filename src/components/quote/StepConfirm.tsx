@@ -7,7 +7,7 @@ import { VehicleSelection, AdditionalDetails, CoverageSelection, AppliedSurcharg
 import { ChevronLeft, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { patchSession, markCompleted } from "@/lib/quoteSession";
+import { patchSession, getSessionCredentials } from "@/lib/quoteSession";
 
 interface StepConfirmProps {
   vehicle: VehicleSelection;
@@ -56,28 +56,35 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.from("custom_quote_requests").insert({
-      first_name: form.firstName.trim(),
-      last_name: form.lastName.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      vin: form.vin.trim(),
-      vehicle_year: vehicle.year,
-      vehicle_make: vehicle.make,
-      vehicle_model: vehicle.model,
-      message: `Confirmed quote — ${coverage.planName}, ${coverage.yearsCovered}yr/${coverage.mileageCovered.toLocaleString()}km, ${coverage.deductible}. Price: $${price.toLocaleString("en-US", { minimumFractionDigits: 2 })}${surcharges.length > 0 ? ` (includes surcharges: ${surcharges.map(s => `${s.label}: $${s.amount}`).join(', ')})` : ''}. Address: ${form.streetAddress}, ${form.city}, ${form.province}.`,
+    const creds = getSessionCredentials();
+    if (!creds) {
+      setLoading(false);
+      toast({ title: "Session error", description: "Please refresh and try again.", variant: "destructive" });
+      return;
+    }
+
+    const { data, error } = await supabase.functions.invoke("quote-submit", {
+      body: {
+        session_id: creds.session_id,
+        write_token: creds.write_token,
+        kind: "purchase",
+        contact: {
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          vin: form.vin.trim(),
+          street_address: form.streetAddress.trim(),
+          city: form.city.trim(),
+          province: form.province,
+        },
+      },
     });
 
     setLoading(false);
-    if (error) {
+    if (error || !data?.ok) {
       toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });
     } else {
-      await markCompleted("completed_purchase", {
-        first_name: form.firstName.trim(),
-        last_name: form.lastName.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-      });
       setSubmitted(true);
     }
   }

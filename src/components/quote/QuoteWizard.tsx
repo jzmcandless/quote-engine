@@ -30,18 +30,15 @@ export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}
     };
   }, []);
 
-  // Patch session on relevant state changes
+  // Patch session with only fields the server allows anon to write.
+  // Price, surcharges, vehicle_class, eligibility and status are set
+  // server-side by the quote-compute / quote-submit edge functions.
   useEffect(() => {
     patchSession({
       current_step: state.step,
       vehicle: state.vehicle,
       additional_details: state.additionalDetails,
       coverage: state.coverage,
-      vehicle_class: state.vehicleClass,
-      is_eligible: state.isEligible,
-      ineligible_message: state.ineligibleMessage || null,
-      price: state.price,
-      surcharges: state.surcharges,
     });
   }, [state]);
 

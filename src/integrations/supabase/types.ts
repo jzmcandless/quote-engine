@@ -284,6 +284,8 @@ export type Database = {
         Row: {
           abandoned_notified_at: string | null
           additional_details: Json | null
+          computed_at: string | null
+          computed_input_hash: string | null
           coverage: Json | null
           created_at: string
           current_step: number
@@ -300,14 +302,18 @@ export type Database = {
           session_id: string
           status: string
           surcharges: Json | null
+          token_created_at: string | null
           updated_at: string
           user_agent: string | null
           vehicle: Json | null
           vehicle_class: string | null
+          write_token_hash: string | null
         }
         Insert: {
           abandoned_notified_at?: string | null
           additional_details?: Json | null
+          computed_at?: string | null
+          computed_input_hash?: string | null
           coverage?: Json | null
           created_at?: string
           current_step?: number
@@ -324,14 +330,18 @@ export type Database = {
           session_id: string
           status?: string
           surcharges?: Json | null
+          token_created_at?: string | null
           updated_at?: string
           user_agent?: string | null
           vehicle?: Json | null
           vehicle_class?: string | null
+          write_token_hash?: string | null
         }
         Update: {
           abandoned_notified_at?: string | null
           additional_details?: Json | null
+          computed_at?: string | null
+          computed_input_hash?: string | null
           coverage?: Json | null
           created_at?: string
           current_step?: number
@@ -348,10 +358,12 @@ export type Database = {
           session_id?: string
           status?: string
           surcharges?: Json | null
+          token_created_at?: string | null
           updated_at?: string
           user_agent?: string | null
           vehicle?: Json | null
           vehicle_class?: string | null
+          write_token_hash?: string | null
         }
         Relationships: []
       }
@@ -458,6 +470,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_quote_computation: {
+        Args: {
+          p_coverage: Json
+          p_ineligible_message: string
+          p_input_hash: string
+          p_is_eligible: boolean
+          p_price: number
+          p_session_id: string
+          p_surcharges: Json
+          p_vehicle_class: string
+        }
+        Returns: undefined
+      }
+      complete_quote_session: {
+        Args: { p_session_id: string; p_status: string }
+        Returns: undefined
+      }
+      create_quote_session: {
+        Args: { p_referrer?: string; p_user_agent?: string }
+        Returns: {
+          session_id: string
+          write_token: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -466,6 +502,10 @@ export type Database = {
         Returns: boolean
       }
       mark_abandon_notified: { Args: { p_id: string }; Returns: undefined }
+      patch_quote_session: {
+        Args: { p_patch: Json; p_session_id: string; p_write_token: string }
+        Returns: undefined
+      }
       sweep_quote_sessions: {
         Args: never
         Returns: {
@@ -480,6 +520,10 @@ export type Database = {
       upsert_quote_session: {
         Args: { p_patch: Json; p_session_id: string }
         Returns: undefined
+      }
+      verify_quote_session_token: {
+        Args: { p_session_id: string; p_token: string }
+        Returns: boolean
       }
     }
     Enums: {
