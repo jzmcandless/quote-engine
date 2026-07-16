@@ -41,6 +41,19 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
     email: contact.email,
     vin: "",
   });
+  const [vinTouched, setVinTouched] = useState(false);
+
+  const vinValue = form.vin.trim();
+  const VIN_ALLOWED = /^[A-HJ-NPR-Z0-9]+$/i;
+  let vinError = "";
+  if (vinValue.length > 0) {
+    if (!VIN_ALLOWED.test(vinValue)) {
+      vinError = "VIN contains invalid characters (letters I, O, Q are not allowed).";
+    } else if (vinValue.length < 11 || vinValue.length > 17) {
+      vinError = "VIN must be 11–17 characters.";
+    }
+  }
+  const vinValid = vinValue.length > 0 && vinError === "";
 
   const requiredFilled =
     form.firstName.trim() &&
@@ -50,7 +63,7 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
     form.province &&
     form.phone.trim() &&
     form.email.trim() &&
-    form.vin.trim();
+    vinValid;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
