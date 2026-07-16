@@ -41,6 +41,19 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
     email: contact.email,
     vin: "",
   });
+  const [vinTouched, setVinTouched] = useState(false);
+
+  const vinValue = form.vin.trim();
+  const VIN_ALLOWED = /^[A-HJ-NPR-Z0-9]+$/i;
+  let vinError = "";
+  if (vinValue.length > 0) {
+    if (!VIN_ALLOWED.test(vinValue)) {
+      vinError = "VIN contains invalid characters (letters I, O, Q are not allowed).";
+    } else if (vinValue.length < 11 || vinValue.length > 17) {
+      vinError = "VIN must be 11–17 characters.";
+    }
+  }
+  const vinValid = vinValue.length > 0 && vinError === "";
 
   const requiredFilled =
     form.firstName.trim() &&
@@ -50,7 +63,7 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
     form.province &&
     form.phone.trim() &&
     form.email.trim() &&
-    form.vin.trim();
+    vinValid;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -182,14 +195,23 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
               </p>
             ))}
           </div>
-          <div className="flex items-center gap-1 mt-3">
-            <Input
-              placeholder="VIN Number"
-              value={form.vin}
-              onChange={(e) => setForm((s) => ({ ...s, vin: e.target.value }))}
-              required
-            />
-            <span className="text-destructive text-sm">*</span>
+          <div className="mt-3">
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="VIN Number"
+                value={form.vin}
+                onChange={(e) => setForm((s) => ({ ...s, vin: e.target.value.toUpperCase() }))}
+                onBlur={() => setVinTouched(true)}
+                aria-invalid={!!vinError}
+                className={vinError ? "border-destructive focus-visible:ring-destructive" : ""}
+                maxLength={17}
+                required
+              />
+              <span className="text-destructive text-sm">*</span>
+            </div>
+            {(vinTouched || vinValue.length > 0) && vinError && (
+              <p className="text-destructive text-xs mt-1">{vinError}</p>
+            )}
           </div>
         </div>
       </div>
