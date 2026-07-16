@@ -1,0 +1,55 @@
+name: Build widget
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.widget.ts"
+      - "tailwind.config.widget.ts"
+      - "postcss.config.widget.cjs"
+      - ".github/workflows/build-widget.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-widget:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build widget
+        run: npm run build:widget
+
+      - name: Commit generated widget
+        run: |
+          if git diff --quiet -- dist-widget; then
+            echo "Widget output has not changed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add dist-widget
+          git commit -m "Build widget distribution [skip ci]"
+          git push
