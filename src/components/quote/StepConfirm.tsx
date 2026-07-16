@@ -195,14 +195,23 @@ export function StepConfirm({ vehicle, details, coverage, contact, price, surcha
               </p>
             ))}
           </div>
-          <div className="flex items-center gap-1 mt-3">
-            <Input
-              placeholder="VIN Number"
-              value={form.vin}
-              onChange={(e) => setForm((s) => ({ ...s, vin: e.target.value }))}
-              required
-            />
-            <span className="text-destructive text-sm">*</span>
+          <div className="mt-3">
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="VIN Number"
+                value={form.vin}
+                onChange={(e) => setForm((s) => ({ ...s, vin: e.target.value.toUpperCase() }))}
+                onBlur={() => setVinTouched(true)}
+                aria-invalid={!!vinError}
+                className={vinError ? "border-destructive focus-visible:ring-destructive" : ""}
+                maxLength={17}
+                required
+              />
+              <span className="text-destructive text-sm">*</span>
+            </div>
+            {(vinTouched || vinValue.length > 0) && vinError && (
+              <p className="text-destructive text-xs mt-1">{vinError}</p>
+            )}
           </div>
         </div>
       </div>
