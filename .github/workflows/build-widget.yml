@@ -33,9 +33,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          
-      - name: Update dependency lockfile
-        run: npm install --package-lock-only
         
       - name: Install dependencies
         run: npm ci
@@ -43,16 +40,16 @@ jobs:
       - name: Build widget
         run: npm run build:widget
         
-      - name: Commit lockfile and generated widget
+      - name: Commit generated widget
         run: |
-          if git diff --quiet -- package-lock.json dist-widget; then
-            echo "Lockfile and widget output have not changed."
+          if git diff --quiet -- dist-widget; then
+            echo "Widget output has not changed."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add package-lock.json dist-widget
-          git commit -m "Sync lockfile and build widget [skip ci]"
+          git add dist-widget
+          git commit -m "Build widget distribution [skip ci]"
           git push
