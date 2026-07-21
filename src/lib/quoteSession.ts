@@ -73,6 +73,23 @@ let lastPatch = 0;
 let pendingTimer: number | null = null;
 let pendingPatch: Record<string, unknown> = {};
 
+async function sendPatch(toSend: Record<string, unknown>, retry = true): Promise<void> {
+  if (!sessionId || !writeToken) await initSession();
+  const creds = getSessionCredentials();
+  if (!creds) return;
+  const { error } = await supabase.rpc("patch_quote_session", {
+    p_session_id: creds.session_id,
+    p_write_token: creds.write_token,
+    p_patch: toSend as any,
+  });
+  if (error && retry) {
+    // Session likely expired or invalid — reset and try once more.
+    clearSessionId();
+    await initSession();
+    await sendPatch(toSend, false);
+  }
+}
+
 export async function patchSession(patch: Record<string, unknown>): Promise<void> {
   for (const [k, v] of Object.entries(patch)) {
     if (ALLOWED_KEYS.has(k)) pendingPatch[k] = v;
@@ -85,15 +102,9 @@ export async function patchSession(patch: Record<string, unknown>): Promise<void
     lastPatch = Date.now();
     const toSend = pendingPatch;
     pendingPatch = {};
-    if (!sessionId || !writeToken) await initSession();
-    const creds = getSessionCredentials();
-    if (!creds) return;
+    if (Object.keys(toSend).length === 0) return;
     try {
-      await supabase.rpc("patch_quote_session", {
-        p_session_id: creds.session_id,
-        p_write_token: creds.write_token,
-        p_patch: toSend as any,
-      });
+      await sendPatch(toSend);
     } catch (err) {
       console.warn("[quoteSession] patch failed", err);
     }
@@ -101,13 +112,8 @@ export async function patchSession(patch: Record<string, unknown>): Promise<void
 }
 
 export async function heartbeat(): Promise<void> {
-  const creds = getSessionCredentials();
-  if (!creds) return;
+  // No-op patch would be rejected by server validation; touch with a harmless field.
   try {
-    await supabase.rpc("patch_quote_session", {
-      p_session_id: creds.session_id,
-      p_write_token: creds.write_token,
-      p_patch: {} as any,
-    });
+    await sendPatch({ user_agent: navigator.userAgent });
   } catch { /* noop */ }
 }
