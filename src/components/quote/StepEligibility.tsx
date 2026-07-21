@@ -205,6 +205,10 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
           </Button>
         </form>
 
+        <Button variant="outline" onClick={onRestart} size="lg" className="w-full">
+          Check a different vehicle's eligibility
+        </Button>
+
         <Button variant="outline" onClick={onBack} size="lg" className="w-full">
           <ChevronLeft className="w-4 h-4 mr-1" /> Back
         </Button>
