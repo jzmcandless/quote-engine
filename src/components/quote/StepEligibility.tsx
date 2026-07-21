@@ -16,9 +16,10 @@ interface StepEligibilityProps {
   onResult: (eligible: boolean, message: string, vehicleClass: string | null) => void;
   onNext: () => void;
   onBack: () => void;
+  onRestart: () => void;
 }
 
-export function StepEligibility({ vehicle, details, isEligible, ineligibleMessage, onResult, onNext, onBack }: StepEligibilityProps) {
+export function StepEligibility({ vehicle, details, isEligible, ineligibleMessage, onResult, onNext, onBack, onRestart }: StepEligibilityProps) {
   const [checking, setChecking] = useState(false);
   const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "", phone: "", vin: "" });
   const [submitting, setSubmitting] = useState(false);
