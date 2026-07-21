@@ -103,6 +103,7 @@ export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}
                     setState((s) => ({ ...s, isEligible: null, ineligibleMessage: "" }));
                     goTo(2);
                   }}
+                  onRestart={restart}
                 />
               )}
               {state.step === 4 && (
