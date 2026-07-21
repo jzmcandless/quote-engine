@@ -1,16 +1,13 @@
-## Add inline VIN validation error on Confirm step
+## Add "Check a different vehicle's eligibility" button
 
-Add client-side VIN format validation to `src/components/quote/StepConfirm.tsx` that mirrors the server rule (`/^[A-HJ-NPR-Z0-9]{11,17}$/i` — 11–17 chars, letters/digits, excluding I, O, Q).
+On step 3 (`StepEligibility.tsx`), in the **ineligible** state (both before and after custom-request submission), add a new button directly under "Submit Request" (or under "Start Over" on the submitted screen) labeled **"Check a different vehicle's eligibility"**.
 
-**Behavior**
-- Track a `vinError` string derived from `form.vin`.
-- Show the error inline directly below the VIN input in `text-destructive text-xs` styling, only after the user has typed something or blurred the field (to avoid nagging on empty initial state).
-- Error messages:
-  - Empty on blur → no inline message (the required `*` already covers this; submit button stays disabled).
-  - Wrong length (not 11–17 chars) → "VIN must be 11–17 characters."
-  - Invalid characters (contains I, O, Q, or non-alphanumerics) → "VIN contains invalid characters (letters I, O, Q are not allowed)."
-- Apply `aria-invalid` and a `border-destructive` class to the input when invalid.
-- Include VIN validity in the `requiredFilled` check so Submit stays disabled until VIN is valid.
-- Normalize to uppercase on change for user convenience (server regex is case-insensitive, but VINs are canonically uppercase).
+### Behavior
+- Clicking it clears the current quote session and starts fresh at step 1 — same behavior as the existing `restart` handler in `QuoteWizard.tsx` (calls `clearSessionId()`, resets state to `initialQuoteState`, then `initSession()` mints a new session).
+- To wire this without duplicating logic, pass the existing `restart` function down as an `onRestart` prop to `StepEligibility` (mirrors how `StepQuote` and `StepConfirm` already receive it).
 
-No server, schema, or other step changes.
+### Files
+- `src/components/quote/QuoteWizard.tsx` — pass `onRestart={restart}` into `<StepEligibility …/>`.
+- `src/components/quote/StepEligibility.tsx` — accept `onRestart` prop; render a secondary `Button` (variant `outline`, full width, `size="lg"`) under the Submit Request button in the ineligible form view, and also under the "Start Over" button in the submitted confirmation view. Label: "Check a different vehicle's eligibility".
+
+No other steps, no styling system changes, no backend changes.

@@ -16,9 +16,10 @@ interface StepEligibilityProps {
   onResult: (eligible: boolean, message: string, vehicleClass: string | null) => void;
   onNext: () => void;
   onBack: () => void;
+  onRestart: () => void;
 }
 
-export function StepEligibility({ vehicle, details, isEligible, ineligibleMessage, onResult, onNext, onBack }: StepEligibilityProps) {
+export function StepEligibility({ vehicle, details, isEligible, ineligibleMessage, onResult, onNext, onBack, onRestart }: StepEligibilityProps) {
   const [checking, setChecking] = useState(false);
   const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "", phone: "", vin: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -116,6 +117,9 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
           <Button variant="outline" onClick={onBack} size="lg" className="w-full">
             <ChevronLeft className="w-4 h-4 mr-1" /> Start Over
           </Button>
+          <Button variant="outline" onClick={onRestart} size="lg" className="w-full">
+            Check a different vehicle's eligibility
+          </Button>
         </div>
       );
     }
@@ -200,6 +204,10 @@ export function StepEligibility({ vehicle, details, isEligible, ineligibleMessag
             Submit Request
           </Button>
         </form>
+
+        <Button variant="outline" onClick={onRestart} size="lg" className="w-full">
+          Check a different vehicle's eligibility
+        </Button>
 
         <Button variant="outline" onClick={onBack} size="lg" className="w-full">
           <ChevronLeft className="w-4 h-4 mr-1" /> Back
