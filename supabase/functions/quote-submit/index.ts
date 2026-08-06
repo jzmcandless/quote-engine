@@ -3,6 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   SubmitSchema, assertShape, readJsonBody, bad, ok, corsHeaders,
 } from "../_shared/validate.ts";
+import { buildQuoteTemplateData, notifyStaff } from "../_shared/notifyStaff.ts";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -29,8 +31,9 @@ Deno.serve(async (req) => {
     if (vErr || verified !== true) return bad(401, "unauthorized");
 
     const { data: sess } = await admin.from("quote_sessions")
-      .select("vehicle, coverage, price, surcharges, is_eligible")
+      .select("vehicle, additional_details, coverage, price, surcharges, is_eligible, ineligible_message")
       .eq("session_id", body.session_id).maybeSingle();
+
     if (!sess) return bad(404, "not_found");
 
     const vehicle = (sess.vehicle ?? {}) as Record<string, unknown>;
@@ -93,7 +96,26 @@ Deno.serve(async (req) => {
       return bad(500, "server_error");
     }
 
+    await notifyStaff({
+      admin,
+      templateName: body.kind === "purchase"
+        ? "quote-purchase-submitted"
+        : "quote-ineligible-request",
+      eventKey: `${body.session_id}-${body.kind}`,
+      templateData: buildQuoteTemplateData(
+        {
+          ...sess,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          email: c.email,
+          phone: c.phone,
+        },
+        { vin },
+      ),
+    });
+
     return ok({ ok: true });
+
   } catch (err) {
     console.error("[quote-submit]", err);
     return bad(500, "server_error");

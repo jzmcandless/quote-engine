@@ -1,168 +1,111 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { Save, RotateCcw } from "lucide-react";
-import {
-  EmailTemplate,
-  EmailTemplateKey,
-  loadTemplate,
-  saveTemplate,
-  resetTemplate,
-  DEFAULT_TEMPLATES,
-} from "@/lib/emailTemplates";
-import { getSampleData } from "@/lib/emailSampleData";
-import { EmailPreview } from "./EmailPreview";
+import { Loader2, Mail } from "lucide-react";
 
-const KEYS: EmailTemplateKey[] = [
-  "ineligible-quote-request",
-  "purchase-completed",
-];
-
-function TemplateForm({ templateKey }: { templateKey: EmailTemplateKey }) {
-  const { toast } = useToast();
-  const [template, setTemplate] = useState<EmailTemplate>(() =>
-    loadTemplate(templateKey),
-  );
-  const [dirty, setDirty] = useState(false);
-
-  useEffect(() => {
-    setTemplate(loadTemplate(templateKey));
-    setDirty(false);
-  }, [templateKey]);
-
-  function update<K extends keyof EmailTemplate>(
-    field: K,
-    value: EmailTemplate[K],
-  ) {
-    setTemplate((t) => ({ ...t, [field]: value }));
-    setDirty(true);
-  }
-
-  function handleSave() {
-    saveTemplate(template);
-    setDirty(false);
-    toast({ title: "Template saved" });
-  }
-
-  function handleReset() {
-    const defaults = resetTemplate(templateKey);
-    setTemplate(defaults);
-    setDirty(false);
-    toast({ title: "Reset to default" });
-  }
-
-  const sample = getSampleData(templateKey);
-  const def = DEFAULT_TEMPLATES[templateKey];
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Editor */}
-      <div className="space-y-4">
-        <p className="text-xs text-muted-foreground">
-          {def.description} Use{" "}
-          <code className="text-[11px] bg-muted px-1 py-0.5 rounded">
-            {"{{firstName}}"}
-          </code>{" "}
-          and{" "}
-          <code className="text-[11px] bg-muted px-1 py-0.5 rounded">
-            {"{{lastName}}"}
-          </code>{" "}
-          for personalization.
-        </p>
-
-        <div>
-          <Label htmlFor="subject" className="mb-1.5 block text-xs">
-            Subject
-          </Label>
-          <Input
-            id="subject"
-            value={template.subject}
-            onChange={(e) => update("subject", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="heading" className="mb-1.5 block text-xs">
-            Heading
-          </Label>
-          <Input
-            id="heading"
-            value={template.heading}
-            onChange={(e) => update("heading", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="intro" className="mb-1.5 block text-xs">
-            Intro paragraph
-          </Label>
-          <Textarea
-            id="intro"
-            rows={4}
-            value={template.intro}
-            onChange={(e) => update("intro", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="footer" className="mb-1.5 block text-xs">
-            Footer
-          </Label>
-          <Textarea
-            id="footer"
-            rows={2}
-            value={template.footer}
-            onChange={(e) => update("footer", e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          <Button onClick={handleSave} disabled={!dirty}>
-            <Save className="w-4 h-4 mr-1" /> Save changes
-          </Button>
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="w-4 h-4 mr-1" /> Reset to default
-          </Button>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          The data sections below the intro (customer, vehicle, coverage,
-          pricing) render automatically from the actual submission data and
-          aren't editable here — this keeps the email content safe and
-          consistent.
-        </p>
-      </div>
-
-      {/* Preview */}
-      <div>
-        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Live preview
-        </div>
-        <EmailPreview template={template} data={sample} />
-      </div>
-    </div>
-  );
+interface LiveTemplate {
+  name: string;
+  displayName: string;
+  subject: string;
+  html: string;
 }
 
+const TRIGGERS: Record<string, string> = {
+  "quote-ineligible-request":
+    "Sent when a customer's vehicle is not eligible and they submit a custom quote request.",
+  "quote-contact-captured":
+    "Sent when a customer enters their contact details to view their quote.",
+  "quote-purchase-submitted":
+    "Sent when a customer submits their warranty purchase.",
+};
+
 export function EmailTemplateEditor() {
+  const [templates, setTemplates] = useState<LiveTemplate[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("preview-quote-email");
+      if (error) {
+        setError("Could not load the live email templates.");
+      } else {
+        const list = (data?.templates ?? []) as LiveTemplate[];
+        setTemplates(list);
+        setActive(list[0]?.name ?? null);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const current = templates.find((t) => t.name === active);
+
   return (
-    <Tabs defaultValue={KEYS[0]} className="w-full">
-      <TabsList>
-        {KEYS.map((k) => (
-          <TabsTrigger key={k} value={k}>
-            {DEFAULT_TEMPLATES[k].name}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      {KEYS.map((k) => (
-        <TabsContent key={k} value={k} className="mt-4">
-          <TemplateForm templateKey={k} />
-        </TabsContent>
-      ))}
-    </Tabs>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="w-5 h-5 text-primary" /> Notification emails
+        </CardTitle>
+        <CardDescription>
+          These are the live emails sent to everyone on your notification list.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading && (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading templates…
+          </div>
+        )}
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {!loading && !error && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((t) => (
+                <Button
+                  key={t.name}
+                  variant={t.name === active ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActive(t.name)}
+                >
+                  {t.displayName}
+                </Button>
+              ))}
+            </div>
+
+            {current && (
+              <div className="space-y-3">
+                <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    When it sends
+                  </p>
+                  <p className="text-sm">{TRIGGERS[current.name] ?? ""}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground pt-2">
+                    Subject
+                  </p>
+                  <p className="text-sm font-medium">{current.subject}</p>
+                </div>
+
+                <div className="rounded-lg border overflow-hidden bg-white">
+                  <iframe
+                    title={`${current.displayName} preview`}
+                    srcDoc={current.html}
+                    className="w-full h-[600px] border-0"
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Sample data is shown for preview. Real emails use the customer's actual
+                  vehicle, coverage and contact details.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

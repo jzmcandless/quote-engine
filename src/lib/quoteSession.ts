@@ -117,6 +117,28 @@ export async function patchSession(patch: Record<string, unknown>): Promise<void
   }, delay);
 }
 
+// Immediately sends any queued patch (plus optional extra fields) and resolves
+// once the server has stored it. Used before server-side follow-up calls.
+export async function flushSession(patch: Record<string, unknown> = {}): Promise<void> {
+  for (const [k, v] of Object.entries(patch)) {
+    if (ALLOWED_KEYS.has(k)) pendingPatch[k] = v;
+  }
+  if (pendingTimer) {
+    window.clearTimeout(pendingTimer);
+    pendingTimer = null;
+  }
+  const toSend = pendingPatch;
+  pendingPatch = {};
+  lastPatch = Date.now();
+  if (Object.keys(toSend).length === 0) return;
+  try {
+    await sendPatch(toSend);
+  } catch (err) {
+    console.warn("[quoteSession] flush failed", err);
+  }
+}
+
+
 export async function heartbeat(): Promise<void> {
   // No-op patch would be rejected by server validation; touch with a harmless field.
   try {
