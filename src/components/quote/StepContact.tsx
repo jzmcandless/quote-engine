@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ContactInfo } from "@/types/quote";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
-import { patchSession } from "@/lib/quoteSession";
+import { getSessionCredentials, patchSession } from "@/lib/quoteSession";
+import { supabase } from "@/integrations/supabase/client";
+
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "Required").max(100),
