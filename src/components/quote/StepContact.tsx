@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ContactInfo } from "@/types/quote";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
-import { flushSession, getSessionCredentials } from "@/lib/quoteSession";
+import { flushSession, getSessionCredentials, patchSession } from "@/lib/quoteSession";
 import { supabase } from "@/integrations/supabase/client";
 
 
