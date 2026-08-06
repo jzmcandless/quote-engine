@@ -31,8 +31,9 @@ Deno.serve(async (req) => {
     if (vErr || verified !== true) return bad(401, "unauthorized");
 
     const { data: sess } = await admin.from("quote_sessions")
-      .select("vehicle, coverage, price, surcharges, is_eligible")
+      .select("vehicle, additional_details, coverage, price, surcharges, is_eligible, ineligible_message")
       .eq("session_id", body.session_id).maybeSingle();
+
     if (!sess) return bad(404, "not_found");
 
     const vehicle = (sess.vehicle ?? {}) as Record<string, unknown>;
