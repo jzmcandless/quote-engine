@@ -113,6 +113,8 @@ export async function patchSession(patch: Record<string, unknown>): Promise<void
       await sendPatch(toSend);
     } catch (err) {
       console.warn("[quoteSession] patch failed", err);
+    }
+  }, delay);
 }
 
 // Immediately sends any queued patch (plus optional extra fields) and resolves
@@ -136,8 +138,6 @@ export async function flushSession(patch: Record<string, unknown> = {}): Promise
   }
 }
 
-  }, delay);
-}
 
 export async function heartbeat(): Promise<void> {
   // No-op patch would be rejected by server validation; touch with a harmless field.
