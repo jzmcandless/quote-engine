@@ -82,13 +82,19 @@ async function sendPatch(toSend: Record<string, unknown>, retry = true): Promise
     p_write_token: creds.write_token,
     p_patch: toSend as any,
   });
-  if (error && retry) {
-    // Session likely expired or invalid — reset and try once more.
+  if (!error) return;
+  // Only expired/unknown sessions warrant a reset. A validation rejection
+  // ("invalid_input") must not silently restart the wizard.
+  const isSessionError = (error.message ?? "").includes("invalid_session");
+  if (isSessionError && retry) {
     clearSessionId();
     await initSession();
     await sendPatch(toSend, false);
+    return;
   }
+  console.warn("[quoteSession] patch rejected", error.message);
 }
+
 
 export async function patchSession(patch: Record<string, unknown>): Promise<void> {
   for (const [k, v] of Object.entries(patch)) {
