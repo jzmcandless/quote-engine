@@ -40,7 +40,7 @@ export function StepContact({ contact, onChange, onNext, onBack }: StepContactPr
     patchSession({ [dbKeyMap[key]]: contact[key].trim() || null });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = contactSchema.safeParse(contact);
     if (!result.success) {
@@ -59,14 +59,27 @@ export function StepContact({ contact, onChange, onNext, onBack }: StepContactPr
       phone: result.data.phone,
       email: result.data.email,
     });
-    patchSession({
-      first_name: result.data.firstName,
-      last_name: result.data.lastName,
-      phone: result.data.phone,
-      email: result.data.email,
-    });
     onNext();
+    // Persist contact details, then let the server notify staff that a
+    // quote was viewed. Failures here must not block the customer.
+    try {
+      await flushSession({
+        first_name: result.data.firstName,
+        last_name: result.data.lastName,
+        phone: result.data.phone,
+        email: result.data.email,
+      });
+      const creds = getSessionCredentials();
+      if (creds) {
+        await supabase.functions.invoke("quote-notify", {
+          body: { ...creds, event: "contact_captured" },
+        });
+      }
+    } catch (err) {
+      console.warn("[contact] notify failed", err);
+    }
   };
+
 
   const fields: { key: keyof ContactInfo; label: string; type: string; autoComplete: string }[] = [
     { key: "firstName", label: "First Name", type: "text", autoComplete: "given-name" },
