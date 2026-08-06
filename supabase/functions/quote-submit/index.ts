@@ -3,6 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   SubmitSchema, assertShape, readJsonBody, bad, ok, corsHeaders,
 } from "../_shared/validate.ts";
+import { buildQuoteTemplateData, notifyStaff } from "../_shared/notifyStaff.ts";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
