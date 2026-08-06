@@ -96,7 +96,26 @@ Deno.serve(async (req) => {
       return bad(500, "server_error");
     }
 
+    await notifyStaff({
+      admin,
+      templateName: body.kind === "purchase"
+        ? "quote-purchase-submitted"
+        : "quote-ineligible-request",
+      eventKey: `${body.session_id}-${body.kind}`,
+      templateData: buildQuoteTemplateData(
+        {
+          ...sess,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          email: c.email,
+          phone: c.phone,
+        },
+        { vin },
+      ),
+    });
+
     return ok({ ok: true });
+
   } catch (err) {
     console.error("[quote-submit]", err);
     return bad(500, "server_error");
