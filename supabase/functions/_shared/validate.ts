@@ -90,11 +90,15 @@ export const PROVINCES = [
 export const DEDUCTIBLES = ["$0", "$50", "$200", "Disappearing"] as const;
 
 const YES_NO = z.enum(["Yes", "No"]);
-const TIMEFRAME = z.enum([
-  "Less than 12 months",
-  "Between 12 and 36 months",
-  "More than 36 months",
-]);
+const TIMEFRAME = z
+  .enum([
+    "Less than 12 months",
+    "Less than 12 months ago", // legacy wording, normalized below
+    "Between 12 and 36 months",
+    "More than 36 months",
+  ])
+  .transform((v) => (v === "Less than 12 months ago" ? "Less than 12 months" : v));
+
 
 // additional_details: allowlisted keys only; unknown keys → parse fails.
 const AdditionalDetails = z
