@@ -13,6 +13,8 @@ export interface QuoteSession {
   is_eligible: boolean | null;
   ineligible_message: string | null;
   price: number | null;
+  base_price?: number | null;
+  deductible_cost?: number | null;
   surcharges: any;
   first_name: string | null;
   last_name: string | null;
