@@ -40,6 +40,9 @@ export interface QuoteState {
   coverage: CoverageSelection;
   contact: ContactInfo;
   price: number | null;
+  basePrice: number | null;
+  deductibleCost: number | null;
+  pricingUnavailable: boolean;
   surcharges: AppliedSurcharge[];
   vehicleClass: string | null;
 }
@@ -53,6 +56,9 @@ export const initialQuoteState: QuoteState = {
   coverage: { planId: '', planName: '', yearsCovered: 0, mileageCovered: 0, deductible: '' },
   contact: { firstName: '', lastName: '', phone: '', email: '' },
   price: null,
+  basePrice: null,
+  deductibleCost: null,
+  pricingUnavailable: false,
   surcharges: [],
   vehicleClass: null,
 };
