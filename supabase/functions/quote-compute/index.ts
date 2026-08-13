@@ -37,20 +37,22 @@ Deno.serve(async (req) => {
     );
     if (verifyErr || verified !== true) return bad(401, "unauthorized");
 
-    // 2. Vehicle class (must reference a real active vehicle)
+    // 2. Vehicle class — determined by make/model (+drivetrain/fuel), never the year.
     let vehicleClass: string | null = null;
-    if (body.vehicle.year && body.vehicle.make && body.vehicle.model) {
+    if (body.vehicle.make && body.vehicle.model) {
       const { data: v } = await admin.from("vehicles")
         .select("vehicle_class")
-        .eq("year", body.vehicle.year)
         .eq("make", body.vehicle.make)
         .eq("model", body.vehicle.model)
         .eq("drivetrain", body.vehicle.drivetrain)
         .eq("fuel_type", body.vehicle.fuelType)
         .eq("active", true)
+        .not("vehicle_class", "is", null)
+        .limit(1)
         .maybeSingle();
       vehicleClass = v?.vehicle_class ?? null;
     }
+
 
     const details = body.additional_details;
     const mileage = Number(details.mileage ?? 0);
