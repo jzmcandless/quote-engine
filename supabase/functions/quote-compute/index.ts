@@ -186,7 +186,10 @@ Deno.serve(async (req) => {
       p_input_hash: inputHash,
     });
 
-    return ok({ eligible: true, ineligibleMessage: null, vehicleClass, price, surcharges: applied });
+    return ok({
+      eligible: true, ineligibleMessage: null, vehicleClass,
+      price, basePrice, deductibleCost, surcharges: applied,
+    });
   } catch (err) {
     console.error("[quote-compute]", err);
     return bad(500, "server_error");
