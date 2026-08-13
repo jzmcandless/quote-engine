@@ -103,24 +103,45 @@ Deno.serve(async (req) => {
 
     // 4. Pricing (requires coverage selection referencing real active records)
     let price: number | null = null;
+    let basePrice: number | null = null;
+    let deductibleCost: number | null = null;
     const applied: Array<{ type: string; label: string; amount: number }> = [];
     const coverage = body.coverage ?? null;
 
     if (coverage) {
+      // Never guess: without a known vehicle class we cannot price this vehicle.
+      if (!vehicleClass) {
+        await admin.rpc("apply_quote_computation", {
+          p_session_id: body.session_id,
+          p_vehicle_class: null,
+          p_is_eligible: true,
+          p_ineligible_message: null,
+          p_price: null,
+          p_surcharges: [],
+          p_coverage: coverage,
+          p_input_hash: inputHash,
+        });
+        return ok({
+          eligible: true, ineligibleMessage: null, vehicleClass: null,
+          price: null, basePrice: null, deductibleCost: null, surcharges: [],
+          reason: "pricing_unavailable",
+        });
+      }
+
       // Reference check: plan must be active
       const { data: plan } = await admin.from("plans")
         .select("id").eq("id", coverage.planId).eq("active", true).maybeSingle();
       if (!plan) return bad(422, "invalid_selection");
 
-      const q = admin.from("coverage_pricing")
+      const { data: pricing } = await admin.from("coverage_pricing")
         .select("price, deductible_cost")
         .eq("plan_id", coverage.planId)
         .eq("years_covered", coverage.yearsCovered)
         .eq("mileage_covered", coverage.mileageCovered)
         .eq("deductible", coverage.deductible)
-        .eq("active", true);
-      if (vehicleClass) q.eq("vehicle_class", vehicleClass);
-      const { data: pricing } = await q.limit(1).maybeSingle();
+        .eq("vehicle_class", vehicleClass)
+        .eq("active", true)
+        .limit(1).maybeSingle();
       if (!pricing) return bad(422, "invalid_selection");
 
       const { data: surchargeRows } = await admin.from("surcharges")
@@ -147,10 +168,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      const base = Number(pricing.price) + Number(pricing.deductible_cost || 0);
-      price = base + applied.reduce((s, x) => s + x.amount, 0);
+      basePrice = Number(pricing.price);
+      deductibleCost = Number(pricing.deductible_cost || 0);
+      price = basePrice + deductibleCost + applied.reduce((s, x) => s + x.amount, 0);
       if (price < 0 || price > 1_000_000) return bad(500, "server_error");
     }
+
 
     await admin.rpc("apply_quote_computation", {
       p_session_id: body.session_id,
