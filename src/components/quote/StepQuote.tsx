@@ -169,7 +169,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, contact, p
     );
   }
 
-  const surchargeTotal = surcharges.reduce((s, x) => s + x.amount, 0);
   const showBreakdown = basePrice !== null;
 
   return (
