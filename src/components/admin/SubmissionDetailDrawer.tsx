@@ -46,13 +46,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  const isEmpty = value === null || value === undefined || value === "";
   return (
     <div className="flex justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-right break-all">{value ?? "—"}</span>
+      <span className={isEmpty ? "text-muted-foreground/70 text-right" : "font-medium text-right break-all"}>
+        {isEmpty ? "Not captured" : value}
+      </span>
     </div>
   );
 }
+
 
 export function SubmissionDetailDrawer({
   session,
