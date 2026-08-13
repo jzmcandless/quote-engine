@@ -27,6 +27,10 @@ export interface QuoteSession {
   last_activity_at: string;
 }
 
+function money(v: number | string) {
+  return `$${Number(v).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+}
+
 function fmt(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleString();
