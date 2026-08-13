@@ -135,9 +135,8 @@ export async function patchSession(patch: Record<string, unknown>): Promise<void
 // Immediately sends any queued patch (plus optional extra fields) and resolves
 // once the server has stored it. Used before server-side follow-up calls.
 export async function flushSession(patch: Record<string, unknown> = {}): Promise<void> {
-  for (const [k, v] of Object.entries(patch)) {
-    if (ALLOWED_KEYS.has(k)) pendingPatch[k] = v;
-  }
+  mergeIntoPending(patch);
+
   if (pendingTimer) {
     window.clearTimeout(pendingTimer);
     pendingTimer = null;
