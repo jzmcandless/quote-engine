@@ -15,23 +15,24 @@ Total                                                      2,593.00
 ## A problem this uncovered
 
 The vehicle list only contains **2024** model years — 74 vehicles, and nothing for any other
-year. The 2024 Ford Bronco is correctly Category D, but there is no 2025 Bronco record. Because
-no matching vehicle was found, the pricing lookup fell back to matching *any* vehicle class and
-returned the first row it found, which happened to be Category A (the cheapest tier).
+year. The lookup matches on year as well as make/model, so a 2025 Bronco matched nothing. With
+no match, the pricing query fell back to matching *any* vehicle class and returned the first row
+it found, which happened to be Category A (the cheapest tier).
 
 The correct Category D price for that coverage is **$4,423.00** (4,118 + 305) — so the quote
 shown was understated by $1,830. Every non-2024 year currently prices this way.
 
 ## What to build
 
-**1. Add the missing model years**
+**1. Vehicle category ignores model year**
 
-Copy the existing 2024 vehicle list to 2025 (same make/model/drivetrain/fuel/class), so a 2025
-Bronco resolves to Category D. Years offered in the wizard stay driven by the vehicle table.
+Category is a property of make + model (with drivetrain/fuel where they differ), never the year.
+The class lookup will match on make/model/drivetrain/fuel only, so a 2025 Bronco resolves to
+Category D from the existing Bronco record. No new per-year rows are needed.
 
 **2. Stop guessing the price when the vehicle class is unknown**
 
-When no active vehicle record matches the selected year/make/model/drivetrain/fuel, the pricing
+When no active vehicle record matches the selected make/model/drivetrain/fuel, the pricing
 lookup must not fall back to an arbitrary class. Instead, return no price and show a "we need to
 confirm pricing for this vehicle" message on the quote step, routing the customer to the
 custom-quote contact path already used for ineligible vehicles.
@@ -47,11 +48,15 @@ Replace the single total with an itemized block:
 
 ## Technical notes
 
-- Migration: insert 2025 rows into `vehicles` mirroring the active 2024 rows.
-- `supabase/functions/quote-compute/index.ts`: return `basePrice` and `deductibleCost`
-  alongside `price` and `surcharges`; when `vehicleClass` is `null`, skip pricing and return a
-  `pricing_unavailable` reason rather than querying `coverage_pricing` without the
-  `vehicle_class` filter.
+- `supabase/functions/quote-compute/index.ts`: resolve `vehicle_class` by
+  make/model/drivetrain/fuel (case-insensitive), dropping the year filter; return `basePrice`
+  and `deductibleCost` alongside `price` and `surcharges`; when `vehicleClass` is `null`, skip
+  pricing and return a `pricing_unavailable` reason rather than querying `coverage_pricing`
+  without the `vehicle_class` filter.
+- Year stays part of the wizard and eligibility rules — only the class lookup ignores it. The
+  year dropdown will be driven by a fixed range rather than the distinct years in the table.
+- `src/components/quote/StepVehicle.tsx`: make/model options no longer filtered by the selected
+  year.
 - `src/types/quote.ts`: add `basePrice` and `deductibleCost` to the quote state.
 - `src/components/quote/StepQuote.tsx`: render the itemized breakdown; handle the
   `pricing_unavailable` state.
