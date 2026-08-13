@@ -371,11 +371,13 @@ export type Database = {
         Row: {
           abandoned_notified_at: string | null
           additional_details: Json | null
+          base_price: number | null
           computed_at: string | null
           computed_input_hash: string | null
           coverage: Json | null
           created_at: string
           current_step: number
+          deductible_cost: number | null
           email: string | null
           first_name: string | null
           id: string
@@ -399,11 +401,13 @@ export type Database = {
         Insert: {
           abandoned_notified_at?: string | null
           additional_details?: Json | null
+          base_price?: number | null
           computed_at?: string | null
           computed_input_hash?: string | null
           coverage?: Json | null
           created_at?: string
           current_step?: number
+          deductible_cost?: number | null
           email?: string | null
           first_name?: string | null
           id?: string
@@ -427,11 +431,13 @@ export type Database = {
         Update: {
           abandoned_notified_at?: string | null
           additional_details?: Json | null
+          base_price?: number | null
           computed_at?: string | null
           computed_input_hash?: string | null
           coverage?: Json | null
           created_at?: string
           current_step?: number
+          deductible_cost?: number | null
           email?: string | null
           first_name?: string | null
           id?: string
@@ -581,19 +587,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_quote_computation: {
-        Args: {
-          p_coverage: Json
-          p_ineligible_message: string
-          p_input_hash: string
-          p_is_eligible: boolean
-          p_price: number
-          p_session_id: string
-          p_surcharges: Json
-          p_vehicle_class: string
-        }
-        Returns: undefined
-      }
+      apply_quote_computation:
+        | {
+            Args: {
+              p_coverage: Json
+              p_ineligible_message: string
+              p_input_hash: string
+              p_is_eligible: boolean
+              p_price: number
+              p_session_id: string
+              p_surcharges: Json
+              p_vehicle_class: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_base_price?: number
+              p_coverage: Json
+              p_deductible_cost?: number
+              p_ineligible_message: string
+              p_input_hash: string
+              p_is_eligible: boolean
+              p_price: number
+              p_session_id: string
+              p_surcharges: Json
+              p_vehicle_class: string
+            }
+            Returns: undefined
+          }
       complete_quote_session: {
         Args: { p_session_id: string; p_status: string }
         Returns: undefined
