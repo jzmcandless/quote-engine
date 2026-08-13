@@ -169,8 +169,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, contact, p
     );
   }
 
-  const showBreakdown = basePrice !== null;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center py-4">
@@ -188,34 +186,6 @@ export function StepQuote({ vehicle, vehicleClass, coverage, details, contact, p
           <span className="text-5xl font-heading font-bold text-foreground">{price.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
-
-      {showBreakdown && (
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-3">Price Breakdown</p>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Base coverage price</span>
-              <span className="font-medium text-foreground">${basePrice!.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            </div>
-            {deductibleCost !== null && deductibleCost !== 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{coverage.deductible} deductible</span>
-                <span className="font-medium text-foreground">+ ${deductibleCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-              </div>
-            )}
-            {surcharges.map((s) => (
-              <div key={s.type} className="flex justify-between">
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="font-medium text-foreground">+ ${s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-            <div className="flex justify-between pt-2 mt-1 border-t">
-              <span className="font-semibold text-foreground">Total</span>
-              <span className="font-semibold text-foreground">${price.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="bg-card border rounded-lg divide-y">
         <div className="p-4">

@@ -13,6 +13,8 @@ export interface QuoteSession {
   is_eligible: boolean | null;
   ineligible_message: string | null;
   price: number | null;
+  base_price?: number | null;
+  deductible_cost?: number | null;
   surcharges: any;
   first_name: string | null;
   last_name: string | null;
@@ -23,6 +25,10 @@ export interface QuoteSession {
   created_at: string;
   updated_at: string;
   last_activity_at: string;
+}
+
+function money(v: number | string) {
+  return `$${Number(v).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 }
 
 function fmt(d: string | null) {
@@ -110,11 +116,24 @@ export function SubmissionDetailDrawer({
             )}
 
             {s.price != null && (
-              <Section title="Quote">
-                <Row label="Price" value={`$${Number(s.price).toLocaleString()}`} />
+              <Section title="Price Breakdown">
+                <Row label="Vehicle Category" value={s.vehicle_class} />
+                {s.base_price != null && (
+                  <Row label="Base coverage price" value={money(s.base_price)} />
+                )}
+                {s.deductible_cost != null && Number(s.deductible_cost) !== 0 && (
+                  <Row
+                    label={`${s.coverage?.deductible ?? ""} deductible`.trim()}
+                    value={`+ ${money(s.deductible_cost)}`}
+                  />
+                )}
                 {Array.isArray(s.surcharges) && s.surcharges.map((sc: any, i: number) => (
-                  <Row key={i} label={sc.label} value={`$${Number(sc.amount).toLocaleString()}`} />
+                  <Row key={i} label={sc.label} value={`+ ${money(sc.amount)}`} />
                 ))}
+                <div className="flex justify-between gap-4 border-t pt-1.5 mt-1.5">
+                  <span className="font-semibold">Total</span>
+                  <span className="font-semibold">{money(s.price)}</span>
+                </div>
               </Section>
             )}
 

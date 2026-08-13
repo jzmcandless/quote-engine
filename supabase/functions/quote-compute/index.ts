@@ -184,6 +184,8 @@ Deno.serve(async (req) => {
       p_surcharges: applied,
       p_coverage: coverage,
       p_input_hash: inputHash,
+      p_base_price: basePrice,
+      p_deductible_cost: deductibleCost,
     });
 
     return ok({
