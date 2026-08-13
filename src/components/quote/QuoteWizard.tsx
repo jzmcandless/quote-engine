@@ -129,11 +129,15 @@ export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}
                   vehicleClass={state.vehicleClass}
                   coverage={state.coverage}
                   details={state.additionalDetails}
+                  contact={state.contact}
                   price={state.price}
+                  basePrice={state.basePrice}
+                  deductibleCost={state.deductibleCost}
+                  pricingUnavailable={state.pricingUnavailable}
                   surcharges={state.surcharges}
-                  onPriceGenerated={(price, surcharges) => setState((s) => ({ ...s, price, surcharges }))}
+                  onPriceGenerated={(r) => setState((s) => ({ ...s, ...r }))}
                   onBack={() => {
-                    setState((s) => ({ ...s, price: null, surcharges: [] }));
+                    setState((s) => ({ ...s, price: null, basePrice: null, deductibleCost: null, pricingUnavailable: false, surcharges: [] }));
                     goTo(5);
                   }}
                   onRestart={restart}
