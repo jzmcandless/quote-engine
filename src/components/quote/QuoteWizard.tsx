@@ -129,6 +129,7 @@ export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}
                   vehicleClass={state.vehicleClass}
                   coverage={state.coverage}
                   details={state.additionalDetails}
+                  contact={state.contact}
                   price={state.price}
                   basePrice={state.basePrice}
                   deductibleCost={state.deductibleCost}
