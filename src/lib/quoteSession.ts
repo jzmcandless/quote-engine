@@ -95,11 +95,26 @@ async function sendPatch(toSend: Record<string, unknown>, retry = true): Promise
   console.warn("[quoteSession] patch rejected", error.message);
 }
 
+// True when an object holds no meaningful values (all empty strings, nulls or
+// zeros). Sending such an object would risk erasing already-saved answers.
+function isBlankObject(v: unknown): boolean {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return false;
+  return Object.values(v as Record<string, unknown>).every(
+    (x) => x === null || x === undefined || x === "" || x === 0
+  );
+}
+
+function mergeIntoPending(patch: Record<string, unknown>) {
+  for (const [k, v] of Object.entries(patch)) {
+    if (!ALLOWED_KEYS.has(k)) continue;
+    if (isBlankObject(v)) continue;
+    pendingPatch[k] = v;
+  }
+}
 
 export async function patchSession(patch: Record<string, unknown>): Promise<void> {
-  for (const [k, v] of Object.entries(patch)) {
-    if (ALLOWED_KEYS.has(k)) pendingPatch[k] = v;
-  }
+  mergeIntoPending(patch);
+
   if (pendingTimer) return;
   const elapsed = Date.now() - lastPatch;
   const delay = Math.max(0, 400 - elapsed);
