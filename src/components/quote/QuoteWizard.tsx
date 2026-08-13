@@ -130,10 +130,13 @@ export function QuoteWizard({ showHeader = true }: { showHeader?: boolean } = {}
                   coverage={state.coverage}
                   details={state.additionalDetails}
                   price={state.price}
+                  basePrice={state.basePrice}
+                  deductibleCost={state.deductibleCost}
+                  pricingUnavailable={state.pricingUnavailable}
                   surcharges={state.surcharges}
-                  onPriceGenerated={(price, surcharges) => setState((s) => ({ ...s, price, surcharges }))}
+                  onPriceGenerated={(r) => setState((s) => ({ ...s, ...r }))}
                   onBack={() => {
-                    setState((s) => ({ ...s, price: null, surcharges: [] }));
+                    setState((s) => ({ ...s, price: null, basePrice: null, deductibleCost: null, pricingUnavailable: false, surcharges: [] }));
                     goTo(5);
                   }}
                   onRestart={restart}
