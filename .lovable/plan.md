@@ -1,37 +1,27 @@
-# Seed 25 Sample Quote Submissions
+# Online payment: pay in full or pay over time with Klarna
 
-Create 25 realistic quote submissions in the admin Submissions list, each with a full, correct price breakdown, then report the breakdowns back in chat.
+## What the customer will see
+After the quote is confirmed (the current Confirm page), the "Submit" button becomes **"Continue to Payment"**. On a secure Stripe payment page, the customer picks how to pay:
+- **Pay in full**: credit/debit card, Apple Pay or Google Pay
+- **Pay over time**: Klarna (Pay in 4 or monthly financing, depending on the amount and whether Klarna approves the customer)
 
-## What gets created
+Either way, the business gets the full warranty price up front. Klarna collects the installments from the customer.
 
-25 rows in the quote sessions table, marked as completed submissions, each with:
-- Contact info (clearly fake sample names/emails so they are easy to spot and delete later)
-- Vehicle (year, make, model, drivetrain, fuel) picked from real vehicles already in the database
-- Additional details: current mileage, purchase timeframe, commercial use, snowplow
-- Coverage: plan, years, mileage plan, deductible
-- Stored pricing: vehicle category, base price, deductible cost, surcharges, total
+After paying, the customer comes back to a "Payment Successful" screen with an order reference. If they cancel, they return to the Confirm page and nothing is lost.
 
-## Coverage of the requested variety
+## What staff will see
+- Submissions in the admin area show payment status (Awaiting payment / Paid / Failed), how they paid (card or Klarna) and the payment reference.
+- The "Purchase Completed" email goes out only after payment succeeds, and includes the payment details.
 
-- At least 6 with current mileage over 20,000 km (and under the 36,000 km eligibility cap)
-- At least 6 purchased over 12 months ago (12-36 month timeframe, still eligible)
-- At least 6 flagged commercial use
-- At least 5 with a snowplow
-- Spread across all 8 vehicle categories (A through H)
-- All 5 plan types represented (BaseCARE, PowertrainCARE, ExtraCARE, PremiumCARE, PremiumCARE PLUS!)
-- Mixed term/mileage plans (3-8 years, 40,000-200,000 km)
-- All deductible options represented ($0, $50, $200, Disappearing)
+## Setup steps
+1. Turn on Lovable's built-in Stripe payments. No Stripe account is needed to start, and a test mode is ready right away. To take real payments later, you claim the Stripe account.
+2. Taxes: Stripe works out and collects the right Canadian GST/HST/PST at checkout (+0.5% per payment). You handle filing.
+3. Klarna is turned on in Stripe's payment settings. Klarna is available for Canadian businesses charging in CAD.
 
-## How pricing is calculated
-
-Prices are not invented. For each row the real pricing table is queried by vehicle category + plan + years + mileage + deductible to get base price and deductible cost, and the real surcharge table supplies commercial / snowplow / timeframe amounts for that plan. Total = base + deductible + applicable surcharges. Only combinations that actually exist in the pricing table are used, so every seeded row matches what the live calculator would produce.
-
-## Deliverable
-
-After seeding, chat returns a list of all 25 entries with: vehicle, category, plan, term/mileage, deductible, mileage, timeframe, commercial/snowplow flags, and the itemized breakdown with total.
-
-## Technical notes
-
-- Insert-only data change against the quote sessions table; no schema changes, no app code changes.
-- Rows use completed purchase status with recent activity timestamps so they appear in the Submissions tab immediately.
-- No write tokens are set, so seeded rows cannot be modified through the public wizard.
+## Technical details
+- Enable with `enable_stripe_payments`. Checkout sessions use `automatic_tax`, currency CAD, and `payment_method_types` card + klarna (wallets come through card).
+- New edge function `create-checkout`: checks the session write_token and charges the **server-stored** `quote_sessions.price` (the client never sends the price). It creates a Checkout Session using price_data with that amount and stores `stripe_checkout_id`.
+- New `stripe-webhook`: on `checkout.session.completed` / `async_payment_succeeded`, marks the quote_session `paid`, saves the payment method type and payment intent ID, and runs `notifyStaff` (purchase-submitted). On failure it marks the session `payment_failed`.
+- Migration: add `payment_status`, `payment_method`, `stripe_checkout_id`, `stripe_payment_intent_id`, `paid_at` to quote_sessions.
+- StepConfirm: saves the contact and address details through quote-submit (kind "purchase_pending"), then redirects to the Checkout URL. It redirects the top window so it works inside the Webflow embed. Return URLs come back with `?payment=success|cancel`, and QuoteWizard shows the right screen.
+- Admin SubmissionDetailDrawer and SubmissionsTable get a payment status column and details.
